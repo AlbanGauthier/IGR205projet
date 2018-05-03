@@ -1,0 +1,28 @@
+Qt / QtCreator:
+use Qt creator v >= 5.5.1
+
+
+
+Tetgen:
+you can download the lib at http://wias-berlin.de/software/index.jsp?id=TetGen&lang=1
+you need to compile the library, for that:
+- make sure to uncomment: #define TETLIBRARY in tetgen.h (they use a different syntax otherwise, i don't know why)
+- then either :
+  a) run: make tetlib, and add the created library in your .pro file
+  OR
+  b) add tetgen.h, tetgen.cxx, predicates.cxx to your .pro file
+
+
+
+libQGLViewer:
+make sure you find the version 2.6.1, they changed something in the latest versions, and I don't get my projects to compile anymore.
+- go to QGLViewer/
+- open QGLViewer.pro with Qt creator
+- chose a version of Qt that is more recent (>=) than 5.5.1
+- chose QGLViewer/ as compiling repertory
+- execute (it will complain, and ask for an executable, but do not care and close Qt creator, just make sure that the library -- either .so or .a on linux -- has been created).
+
+
+
+Eigen:
+do not compile, use headers only
