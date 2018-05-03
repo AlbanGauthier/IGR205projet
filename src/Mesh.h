@@ -5,6 +5,11 @@
 #include "point3.h"
 
 
+struct Triplet{
+    point3d p;
+    point3d n;
+    double area;
+};
 
 struct Vertex{
     point3d p;

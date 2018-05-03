@@ -29,6 +29,8 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_4_3_Core
     Mesh mesh;
     TetGenHandler tetmesh;
 
+    std::vector<Triplet> pointSet;
+
 public :
 
     MyViewer(QGLWidget * parent = NULL) : QGLViewer(parent) , QOpenGLFunctions_4_3_Core() {
