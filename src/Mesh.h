@@ -5,10 +5,21 @@
 #include "point3.h"
 
 
+
 struct Triplet{
     point3d p;
     point3d n;
     double area;
+};
+
+struct BBox{
+    double xMin, xMax, yMin, yMax, zMin, zMax;
+};
+
+struct KDNode{
+    Triplet data;
+    KDNode *leftChild;
+    KDNode *rightChild;
 };
 
 struct Vertex{
