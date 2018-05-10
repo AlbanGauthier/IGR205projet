@@ -37,7 +37,6 @@ public :
         setWindowTitle(QString("Our cool project. PRESS 'H' FOR HELP!"));
     }
 
-
     void draw() {
         glEnable( GL_LIGHTING );
         glColor3f(0.5,0.5,0.8);
@@ -72,37 +71,46 @@ public :
 
 
     void init() {
-        makeCurrent();
-        initializeOpenGLFunctions();
+            std::cout << "01" << std::endl;
+            makeCurrent();
+            std::cout << "02" << std::endl;
+            initializeOpenGLFunctions();
+            std::cout << "03" << std::endl;
 
-        setMouseTracking(true);// Needed for MouseGrabber.
+            setMouseTracking(true);// Needed for MouseGrabber.
 
-        setBackgroundColor(QColor(255,255,255));
+            std::cout << "03a" << std::endl;
+            setBackgroundColor(QColor(255,255,255));
 
-        // Lights:
-        GLTools::initLights();
-        GLTools::setSunsetLight();
-        GLTools::setDefaultMaterial();
+            std::cout << "03b" << std::endl;
+            // Lights:
+            GLTools::initLights();
+            GLTools::setSunsetLight();
+            GLTools::setDefaultMaterial();
 
-        //
-        glShadeModel(GL_SMOOTH);
-        glFrontFace(GL_CCW); // CCW ou CW
+            std::cout << "03c" << std::endl;
+            //
+            glShadeModel(GL_SMOOTH);
+            std::cout << "03c1" << std::endl;
+            glFrontFace(GL_CCW); // CCW ou CW
 
-        glEnable(GL_DEPTH);
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LEQUAL);
+            std::cout << "03d" << std::endl;
+            glEnable(GL_DEPTH);
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LEQUAL);
 
-        glEnable(GL_CLIP_PLANE0);
+            glEnable(GL_CLIP_PLANE0);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glEnable(GL_COLOR_MATERIAL);
 
-        glEnable(GL_COLOR_MATERIAL);
-
-        //
-        setSceneCenter( qglviewer::Vec( 0 , 0 , 0 ) );
-        setSceneRadius( 10.f );
-        showEntireScene();
-    }
+            //
+            setSceneCenter( qglviewer::Vec( 0 , 0 , 0 ) );
+            setSceneRadius( 10.f );
+            std::cout << "04" << std::endl;
+            showEntireScene();
+            std::cout << "init ok" << std::endl;
+        }
 
     QString helpString() const {
         QString text("<h2>Our cool project</h2>");

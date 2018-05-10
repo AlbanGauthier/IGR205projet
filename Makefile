@@ -33,10 +33,10 @@ MOVE          = mv -f
 TAR           = tar -cf
 COMPRESS      = gzip -9f
 DISTNAME      = nameOfYourApp1.0.0
-DISTDIR = /home/maud/Documents/Etudes/X/4A/Télécom/S2/IGR205/ProjetGitHub/tmp/obj/nameOfYourApp1.0.0
+DISTDIR = /home/alban/Documents/workspace/IGR205projet/tmp/obj/nameOfYourApp1.0.0
 LINK          = g++
 LFLAGS        = -m64 -Wl,-O1
-LIBS          = $(SUBLIBS) -L/usr/X11R6/lib64 -L/home/maud/Documents/Etudes/X/4A/Télécom/S2/IGR205/ProjetGitHub/extern/libQGLViewer-2.6.1/QGLViewer -lQGLViewer -lglut -lGLU -lgsl -lgslcblas -lgomp -lQt5OpenGL -lQt5Widgets -lQt5Gui -lQt5Xml -lQt5Core -lGL -lpthread 
+LIBS          = $(SUBLIBS) -L/usr/X11R6/lib64 -L/home/alban/Documents/workspace/IGR205projet/extern/libQGLViewer-2.6.1/QGLViewer -lQGLViewer -lglut -lGLU -lgsl -lgslcblas -lgomp -lQt5OpenGL -lQt5Widgets -lQt5Gui -lQt5Xml -lQt5Core -lGL -lpthread 
 AR            = ar cqs
 RANLIB        = 
 SED           = sed
@@ -87,6 +87,10 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_platformsupport_private.pri \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_printsupport.pri \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_printsupport_private.pri \
+		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_qml.pri \
+		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_qmltest.pri \
+		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_quick.pri \
+		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_quickwidgets.pri \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_sql.pri \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_sql_private.pri \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_testlib.pri \
@@ -184,6 +188,10 @@ Makefile: basicProject.pro /usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qm
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_platformsupport_private.pri \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_printsupport.pri \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_printsupport_private.pri \
+		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_qml.pri \
+		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_qmltest.pri \
+		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_quick.pri \
+		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_quickwidgets.pri \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_sql.pri \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_sql_private.pri \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_testlib.pri \
@@ -213,7 +221,7 @@ Makefile: basicProject.pro /usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qm
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/yacc.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/lex.prf \
 		basicProject.pro \
-		/home/maud/Documents/Etudes/X/4A/Télécom/S2/IGR205/ProjetGitHub/extern/libQGLViewer-2.6.1/QGLViewer/libQGLViewer.prl \
+		/home/alban/Documents/workspace/IGR205projet/extern/libQGLViewer-2.6.1/QGLViewer/libQGLViewer.prl \
 		/usr/lib/x86_64-linux-gnu/libQt5OpenGL.prl \
 		/usr/lib/x86_64-linux-gnu/libQt5Widgets.prl \
 		/usr/lib/x86_64-linux-gnu/libQt5Gui.prl \
@@ -248,6 +256,10 @@ Makefile: basicProject.pro /usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qm
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_platformsupport_private.pri:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_printsupport.pri:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_printsupport_private.pri:
+/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_qml.pri:
+/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_qmltest.pri:
+/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_quick.pri:
+/usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_quickwidgets.pri:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_sql.pri:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_sql_private.pri:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/modules/qt_lib_testlib.pri:
@@ -277,7 +289,7 @@ Makefile: basicProject.pro /usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qm
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/yacc.prf:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/lex.prf:
 basicProject.pro:
-/home/maud/Documents/Etudes/X/4A/Télécom/S2/IGR205/ProjetGitHub/extern/libQGLViewer-2.6.1/QGLViewer/libQGLViewer.prl:
+/home/alban/Documents/workspace/IGR205projet/extern/libQGLViewer-2.6.1/QGLViewer/libQGLViewer.prl:
 /usr/lib/x86_64-linux-gnu/libQt5OpenGL.prl:
 /usr/lib/x86_64-linux-gnu/libQt5Widgets.prl:
 /usr/lib/x86_64-linux-gnu/libQt5Gui.prl:
@@ -342,7 +354,7 @@ tmp/moc/moc_MyViewer.cpp: src/Mesh.h \
 		src/gl/GLUtilityMethods.h \
 		src/gl/BasicColors.h \
 		src/MyViewer.h
-	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64 -I/home/maud/Documents/Etudes/X/4A/Télécom/S2/IGR205/ProjetGitHub -I/home/maud/Documents/Etudes/X/4A/Télécom/S2/IGR205/ProjetGitHub -I/home/maud/Documents/Etudes/X/4A/Télécom/S2/IGR205/ProjetGitHub/src -I/home/maud/Documents/Etudes/X/4A/Télécom/S2/IGR205/ProjetGitHub/extern/tetgen1.5.1-beta1 -I/home/maud/Documents/Etudes/X/4A/Télécom/S2/IGR205/ProjetGitHub/extern/libQGLViewer-2.6.1 -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtOpenGL -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtXml -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include src/MyViewer.h -o tmp/moc/moc_MyViewer.cpp
+	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64 -I/home/alban/Documents/workspace/IGR205projet -I/home/alban/Documents/workspace/IGR205projet -I/home/alban/Documents/workspace/IGR205projet/src -I/home/alban/Documents/workspace/IGR205projet/extern/tetgen1.5.1-beta1 -I/home/alban/Documents/workspace/IGR205projet/extern/libQGLViewer-2.6.1 -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtOpenGL -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtXml -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include src/MyViewer.h -o tmp/moc/moc_MyViewer.cpp
 
 compiler_moc_source_make_all:
 compiler_moc_source_clean:
