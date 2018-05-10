@@ -10,7 +10,7 @@
 
 // opengl and basic gl utilities:
 #include <gl/openglincludeQtComp.h>
-#include <QOpenGLFunctions_4_3_Core>
+#include <QOpenGLFunctions_3_0>
 #include <QOpenGLFunctions>
 #include <QGLViewer/qglviewer.h>
 #include <gl/GLUtilityMethods.h>
@@ -22,7 +22,7 @@
 
 
 
-class MyViewer : public QGLViewer , public QOpenGLFunctions_4_3_Core
+class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
 {
     Q_OBJECT
 
@@ -33,7 +33,7 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_4_3_Core
 
 public :
 
-    MyViewer(QGLWidget * parent = NULL) : QGLViewer(parent) , QOpenGLFunctions_4_3_Core() {
+    MyViewer(QGLWidget * parent = NULL) : QGLViewer(parent) , QOpenGLFunctions_3_0() {
         setWindowTitle(QString("Our cool project. PRESS 'H' FOR HELP!"));
     }
 
