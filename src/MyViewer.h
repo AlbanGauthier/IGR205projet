@@ -170,8 +170,52 @@ public :
         }
     }
 
+    std::vector< point3d > fromMeshToPointSet(Mesh m, std::vector< Triplet > & TripletList) {
+        std::vector< point3d > pointCloud;
+        Triplet triplet;
+        for( unsigned int t = 0 ; t < m.triangles.size() ; ++t ) {
+            point3d const & p0 = m.vertices[ m.triangles[t][0] ].p;
+            point3d const & p1 = m.vertices[ m.triangles[t][1] ].p;
+            point3d const & p2 = m.vertices[ m.triangles[t][2] ].p;
+            point3d n = point3d::cross( p1-p0 , p2-p0 ).direction();
+            double area = point3d::cross( p1-p0 , p2-p0 ).norm();
+
+            //4 points per triangles
+            //barycenter of the 4 new created triangles inside the original
+            point3d p01 = (p0 + p1)/2;
+            point3d p12 = (p1 + p2)/2;
+            point3d p02 = (p0 + p2)/2;
+            point3d p3 = (p0+p01+p02)/3;
+            point3d p4 = (p1+p01+p12)/3;
+            point3d p5 = (p2+p02+p12)/3;
+            point3d p6 = (p0+p1+p2)/3;
+
+            //filling pointSet
+            pointCloud.push_back(p3);
+            pointCloud.push_back(p4);
+            pointCloud.push_back(p5);
+            pointCloud.push_back(p6);
+
+            //filling TripletList
+            triplet.n = n;
+            triplet.area = area/4;
+            triplet.p = p3;
+            TripletList.push_back(triplet);
+            triplet.p = p4;
+            TripletList.push_back(triplet);
+            triplet.p = p5;
+            TripletList.push_back(triplet);
+            triplet.p = p6;
+            TripletList.push_back(triplet);
+        }
+        return pointCloud;
+    }
+
 
     void mainFunction(){
+        std::vector< point3d > const cloudPositions = fromMeshToPointSet(mesh, pointSet);
+        tetmesh.tetMesh;
+        tetmesh = TetGenHandler::computeTetMeshFromCloud ( cloudPositions );
         createPointSet();
         std::cout << "PointSet created : " << pointSet.size() << " points" << std::endl;
         KDNode tree = buildKDTree(pointSet);
@@ -306,49 +350,6 @@ public :
 
     void mouseReleaseEvent(QMouseEvent* e  ) {
         QGLViewer::mouseReleaseEvent(e);
-    }
-
-    //tetmesh = TetGenHandler::computeTetMeshFromCloud ( fromMeshToTripletList(mesh, pointSet) );
-
-    std::vector< point3d > fromMeshToPointSet(Mesh m, std::vector< Triplet > & TripletList) {
-        std::vector< point3d > pointSet;
-        Triplet triplet;
-        for( unsigned int t = 0 ; t < m.triangles.size() ; ++t ) {
-            point3d const & p0 = m.vertices[ m.triangles[t][0] ].p;
-            point3d const & p1 = m.vertices[ m.triangles[t][1] ].p;
-            point3d const & p2 = m.vertices[ m.triangles[t][2] ].p;
-            point3d n = point3d::cross( p1-p0 , p2-p0 ).direction();
-            double area = point3d::cross( p1-p0 , p2-p0 ).norm();
-
-            //4 points per triangles
-            //barycenter of the 4 new created triangles inside the original
-            point3d p01 = (p0 + p1)/2;
-            point3d p12 = (p1 + p2)/2;
-            point3d p02 = (p0 + p2)/2;
-            point3d p3 = (p0+p01+p02)/3;
-            point3d p4 = (p1+p01+p12)/3;
-            point3d p5 = (p2+p02+p12)/3;
-            point3d p6 = (p0+p1+p2)/3;
-
-            //filling pointSet
-            pointSet.push_back(p3);
-            pointSet.push_back(p4);
-            pointSet.push_back(p5);
-            pointSet.push_back(p6);
-
-            //filling TripletList
-            triplet.n = n;
-            triplet.area = area/4;
-            triplet.p = p3;
-            TripletList.push_back(triplet);
-            triplet.p = p4;
-            TripletList.push_back(triplet);
-            triplet.p = p5;
-            TripletList.push_back(triplet);
-            triplet.p = p6;
-            TripletList.push_back(triplet);
-        }
-        return pointSet;
     }
 
 public slots:
