@@ -26,7 +26,6 @@ struct TetGenHandler{
         tetrahedralize(&desiredBehavior, &in, &tetMesh);
     }
 
-
     // CAREFUL ! I'M NOT SURE THAT THE FOLLOWING FUNCTION WORKS.
     void computeTetMeshFromCloud(std::vector< point3d > const & cloudPositions , std::vector< std::vector< unsigned int > > & faces) {
         tetgenio in;

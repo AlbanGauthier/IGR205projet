@@ -2,3 +2,4 @@
 *.pro.user
 /nameOfYourApp
 *.qmake.stash
+*.qglviewer.xml

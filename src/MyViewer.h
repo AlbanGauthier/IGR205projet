@@ -20,7 +20,7 @@
 #include <QFileDialog>
 #include <QKeyEvent>
 
-
+static bool showTetra = false;
 
 class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
 {
@@ -28,7 +28,6 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
 
     Mesh mesh;
     TetGenHandler tetmesh;
-
     std::vector<Triplet> pointSet;
 
 public :
@@ -71,30 +70,18 @@ public :
 
 
     void init() {
-            std::cout << "01" << std::endl;
             makeCurrent();
-            std::cout << "02" << std::endl;
             initializeOpenGLFunctions();
-            std::cout << "03" << std::endl;
-
             setMouseTracking(true);// Needed for MouseGrabber.
-
-            std::cout << "03a" << std::endl;
             setBackgroundColor(QColor(255,255,255));
-
-            std::cout << "03b" << std::endl;
             // Lights:
             GLTools::initLights();
             GLTools::setSunsetLight();
             GLTools::setDefaultMaterial();
-
-            std::cout << "03c" << std::endl;
             //
             glShadeModel(GL_SMOOTH);
-            std::cout << "03c1" << std::endl;
             glFrontFace(GL_CCW); // CCW ou CW
 
-            std::cout << "03d" << std::endl;
             glEnable(GL_DEPTH);
             glEnable(GL_DEPTH_TEST);
             glDepthFunc(GL_LEQUAL);
@@ -107,9 +94,7 @@ public :
             //
             setSceneCenter( qglviewer::Vec( 0 , 0 , 0 ) );
             setSceneRadius( 10.f );
-            std::cout << "04" << std::endl;
             showEntireScene();
-            std::cout << "init ok" << std::endl;
         }
 
     QString helpString() const {
@@ -139,6 +124,9 @@ public :
             // exemple of use of keyboard
             open_mesh();
         }
+        else if( event->key() == Qt::Key_P ) {
+            showTetra = showTetra ? false : true ;
+        }
     }
 
     void mouseDoubleClickEvent( QMouseEvent * e ) {
@@ -167,6 +155,49 @@ public :
 
     void mouseReleaseEvent(QMouseEvent* e  ) {
         QGLViewer::mouseReleaseEvent(e);
+    }
+
+    //tetmesh = TetGenHandler::computeTetMeshFromCloud ( fromMeshToTripletList(mesh, pointSet) );
+
+    std::vector< point3d > fromMeshToPointSet(Mesh m, std::vector< Triplet > & TripletList) {
+        std::vector< point3d > pointSet;
+        Triplet triplet;
+        for( unsigned int t = 0 ; t < m.triangles.size() ; ++t ) {
+            point3d const & p0 = m.vertices[ m.triangles[t][0] ].p;
+            point3d const & p1 = m.vertices[ m.triangles[t][1] ].p;
+            point3d const & p2 = m.vertices[ m.triangles[t][2] ].p;
+            point3d n = point3d::cross( p1-p0 , p2-p0 ).direction();
+            double area = point3d::cross( p1-p0 , p2-p0 ).norm();
+
+            //4 points per triangles
+            //barycenter of the 4 new created triangles inside the original
+            point3d p01 = (p0 + p1)/2;
+            point3d p12 = (p1 + p2)/2;
+            point3d p02 = (p0 + p2)/2;
+            point3d p3 = (p0+p01+p02)/3;
+            point3d p4 = (p1+p01+p12)/3;
+            point3d p5 = (p2+p02+p12)/3;
+            point3d p6 = (p0+p1+p2)/3;
+
+            //filling pointSet
+            pointSet.push_back(p3);
+            pointSet.push_back(p4);
+            pointSet.push_back(p5);
+            pointSet.push_back(p6);
+
+            //filling TripletList
+            triplet.n = n;
+            triplet.area = area/4;
+            triplet.p = p3;
+            TripletList.push_back(triplet);
+            triplet.p = p4;
+            TripletList.push_back(triplet);
+            triplet.p = p5;
+            TripletList.push_back(triplet);
+            triplet.p = p6;
+            TripletList.push_back(triplet);
+        }
+        return pointSet;
     }
 
 public slots:
