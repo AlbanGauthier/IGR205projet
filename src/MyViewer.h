@@ -211,12 +211,9 @@ public :
         return pointCloud;
     }
 
-
     void mainFunction(){
         std::vector< point3d > const cloudPositions = fromMeshToPointSet(mesh, pointSet);
-        tetmesh.tetMesh;
-        tetmesh = TetGenHandler::computeTetMeshFromCloud ( cloudPositions );
-        createPointSet();
+        tetmesh.computeTetMeshFromCloud ( cloudPositions );
         std::cout << "PointSet created : " << pointSet.size() << " points" << std::endl;
         KDNode tree = buildKDTree(pointSet);
         std::cout << "KDTree created : " << std::endl;
@@ -224,20 +221,53 @@ public :
 
     //Draw
     void draw() {
-        glEnable( GL_LIGHTING );
-        glColor3f(0.5,0.5,0.8);
-        glBegin(GL_TRIANGLES);
-        for( unsigned int t = 0 ; t < mesh.triangles.size() ; ++t ) {
-            point3d const & p0 = mesh.vertices[ mesh.triangles[t][0] ].p;
-            point3d const & p1 = mesh.vertices[ mesh.triangles[t][1] ].p;
-            point3d const & p2 = mesh.vertices[ mesh.triangles[t][2] ].p;
-            point3d const & n = point3d::cross( p1-p0 , p2-p0 ).direction();
-            glNormal3f(n[0],n[1],n[2]);
-            glVertex3f(p0[0],p0[1],p0[2]);
-            glVertex3f(p1[0],p1[1],p1[2]);
-            glVertex3f(p2[0],p2[1],p2[2]);
+        if (showTetra) {
+            glEnable( GL_LIGHTING );
+            glColor3f(0.5,0.5,0.8);
+            glBegin(GL_LINES);
+            for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
+                point4ui tet = tetmesh.tetrahedron(t);
+                point3d const & p0 = tetmesh.vertex(tet.x());
+                point3d const & p1 = tetmesh.vertex(tet.y());
+                point3d const & p2 = tetmesh.vertex(tet.z());
+                point3d const & p3 = tetmesh.vertex(tet.w());
+
+                glVertex3f(p0[0],p0[1],p0[2]);
+                glVertex3f(p1[0],p1[1],p1[2]);
+
+                glVertex3f(p0[0],p0[1],p0[2]);
+                glVertex3f(p2[0],p2[1],p2[2]);
+
+                glVertex3f(p0[0],p0[1],p0[2]);
+                glVertex3f(p3[0],p3[1],p3[2]);
+
+                glVertex3f(p1[0],p1[1],p1[2]);
+                glVertex3f(p2[0],p2[1],p2[2]);
+
+                glVertex3f(p1[0],p1[1],p1[2]);
+                glVertex3f(p3[0],p3[1],p3[2]);
+
+                glVertex3f(p3[0],p3[1],p3[2]);
+                glVertex3f(p2[0],p2[1],p2[2]);
+            }
+            glEnd();
         }
-        glEnd();
+        else {
+            glEnable( GL_LIGHTING );
+            glColor3f(0.5,0.5,0.8);
+            glBegin(GL_TRIANGLES);
+            for( unsigned int t = 0 ; t < mesh.triangles.size() ; ++t ) {
+                point3d const & p0 = mesh.vertices[ mesh.triangles[t][0] ].p;
+                point3d const & p1 = mesh.vertices[ mesh.triangles[t][1] ].p;
+                point3d const & p2 = mesh.vertices[ mesh.triangles[t][2] ].p;
+                point3d const & n = point3d::cross( p1-p0 , p2-p0 ).direction();
+                glNormal3f(n[0],n[1],n[2]);
+                glVertex3f(p0[0],p0[1],p0[2]);
+                glVertex3f(p1[0],p1[1],p1[2]);
+                glVertex3f(p2[0],p2[1],p2[2]);
+            }
+            glEnd();
+        }
     }
 
     void pickBackgroundColor() {
