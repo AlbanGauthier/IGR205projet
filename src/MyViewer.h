@@ -108,7 +108,7 @@ public :
         }
     }
 
-    point3d findMedianNormal(std::vector<Triplet> sortedPts){
+    point3d findMedianNormal(std::vector<Triplet> const & sortedPts){
         if (sortedPts.size() % 2 == 1){
             return sortedPts[(sortedPts.size()-1)/2].n;
         }
@@ -117,7 +117,7 @@ public :
         }
     }
 
-    KDNode buildKDTree(std::vector<Triplet> points){
+    KDNode buildKDTree(std::vector<Triplet> const & points){
         if (points.size() == 1){
             KDNode n;
             n.data = points[0];
@@ -128,7 +128,7 @@ public :
 
         BBox B = computeBoundingBox(points);
         int maxAxis = findMaxAxis(B);
-        std::vector<Triplet> sortedPts = sortPtsAlongAxis(points, maxAxis);
+        std::vector<Triplet> const & sortedPts = sortPtsAlongAxis(points, maxAxis);
         point3d q = findMedianSample(sortedPts);
         point3d o = findMedianNormal(sortedPts);
 
