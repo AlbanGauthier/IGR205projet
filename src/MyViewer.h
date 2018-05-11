@@ -29,6 +29,7 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
     Mesh mesh;
     TetGenHandler tetmesh;
     std::vector<Triplet> pointSet;
+    std::vector<double> windingNumbers;
 
 public :
 
@@ -210,6 +211,34 @@ public :
         }
         return pointCloud;
     }
+
+
+    /* SQUELETON OF FASTWN
+    void fastwn(std::vector<Triplet> const & pointSet, KDNode const & tree, std::vector<double> & windingNumbers) {
+        double beta = 2.3; // accuracy : the article cites 2 for triangles, 2.3 for points
+        point3d treep; // = ptilde
+        double treer;
+        point3d ntilde;
+        for (unsigned int i = 0 ; i<pointSet.size() ; i++) {
+            point3d q = pointSet[i].p;
+            if ((q - treep).norm() > beta * treer) {
+                return dot(treep - q,ntilde)/(4*MATH_PI*(treep - q).norm());
+            } else {
+                double val = 0;
+                if (tree.leftChild == nullptr) {
+                    for (unsigned int j = 0 ; j<tree.data.size() ; j++) {
+                        point3d p = tree.data.vertex[j];
+                        point3d n = tree.data.normals[j];
+                        val += dot(p - q,n)/(4*MATH_PI*(p - q).norm());
+                    }
+                } else {
+                    val += fastwn(pointSet, tree.leftChild, windingNumbers);
+                    val += fastwn(pointSet, tree.rightChild, windingNumbers);
+                }
+                windingNumbers[i] = val;
+            }
+        }
+    }*/
 
     void mainFunction(){
         std::vector< point3d > const cloudPositions = fromMeshToPointSet(mesh, pointSet);
