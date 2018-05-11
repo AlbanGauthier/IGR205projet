@@ -12,16 +12,6 @@ struct Triplet{
     double area;
 };
 
-struct BBox{
-    double xMin, xMax, yMin, yMax, zMin, zMax;
-};
-
-struct KDNode{
-    Triplet data;
-    KDNode *leftChild;
-    KDNode *rightChild;
-};
-
 struct Vertex{
     point3d p;
     Vertex() {}

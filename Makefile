@@ -119,6 +119,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/qt_config.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qmake.conf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_post.prf \
+		.qmake.stash \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/exclusive_builds.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/toolchain.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/default_pre.prf \
@@ -139,6 +140,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/lex.prf \
 		basicProject.pro src/point3.h \
 		src/Mesh.h \
+		src/KDTree.h \
 		src/MyViewer.h \
 		src/tetgenhandler.h \
 		src/gl/GLUtilityMethods.h \
@@ -217,6 +219,7 @@ Makefile: basicProject.pro /usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qm
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/qt_config.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qmake.conf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_post.prf \
+		.qmake.stash \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/exclusive_builds.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/toolchain.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/default_pre.prf \
@@ -301,6 +304,7 @@ Makefile: basicProject.pro /usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qm
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/qt_config.prf:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qmake.conf:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_post.prf:
+.qmake.stash:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/exclusive_builds.prf:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/toolchain.prf:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/default_pre.prf:
@@ -341,7 +345,7 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents src/point3.h src/Mesh.h src/MyViewer.h src/tetgenhandler.h src/gl/GLUtilityMethods.h src/gl/BasicColors.h extern/tetgen1.5.1-beta1/tetgen.h $(DISTDIR)/
+	$(COPY_FILE) --parents src/point3.h src/Mesh.h src/KDTree.h src/MyViewer.h src/tetgenhandler.h src/gl/GLUtilityMethods.h src/gl/BasicColors.h extern/tetgen1.5.1-beta1/tetgen.h $(DISTDIR)/
 	$(COPY_FILE) --parents src/main.cpp src/gl/GLUtilityMethods.cpp src/gl/BasicColors.cpp extern/tetgen1.5.1-beta1/tetgen.cxx extern/tetgen1.5.1-beta1/predicates.cxx $(DISTDIR)/
 
 
@@ -382,6 +386,7 @@ tmp/moc/moc_MyViewer.cpp: src/Mesh.h \
 		src/tetgenhandler.h \
 		src/point4.h \
 		extern/tetgen1.5.1-beta1/tetgen.h \
+		src/KDTree.h \
 		src/BasicIO.h \
 		src/gl/openglincludeQtComp.h \
 		extern/libQGLViewer-2.6.1/QGLViewer/qglviewer.h \
@@ -419,6 +424,7 @@ tmp/obj/main.o: src/main.cpp src/MyViewer.h \
 		src/tetgenhandler.h \
 		src/point4.h \
 		extern/tetgen1.5.1-beta1/tetgen.h \
+		src/KDTree.h \
 		src/BasicIO.h \
 		src/gl/openglincludeQtComp.h \
 		extern/libQGLViewer-2.6.1/QGLViewer/qglviewer.h \
