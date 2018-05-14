@@ -24,13 +24,14 @@
 #include <QKeyEvent>
 
 static bool showTetra = false;
+static bool showKDTree = false;
 
 class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
 {
     Q_OBJECT
 
-    Mesh mesh;
     KDTree tree;
+    Mesh mesh;
     TetGenHandler tetmesh;
     std::vector<Triplet> pointSet;
     std::vector<double> windingNumbers;
@@ -102,8 +103,10 @@ public :
 
     //Draw
     void draw() {
+        if (showKDTree) {
+            drawKDTree(tree.root);
+        }
         if (showTetra) {
-            glEnable( GL_LIGHTING );
             glColor3f(0.5,0.5,0.8);
             glBegin(GL_LINES);
             for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
@@ -150,6 +153,66 @@ public :
             glEnd();
         }
     }
+
+    void drawBox(point3d min, point3d max){
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // this tells it to only render lines
+        glBegin(GL_LINES);
+
+        glColor3f(1.0, 1.0, 1.0);
+        //face below
+        glVertex3f(min[0],min[1],min[2]);
+        glVertex3f(max[0],min[1],min[2]);
+
+        glVertex3f(min[0],min[1],min[2]);
+        glVertex3f(min[0],max[1],min[2]);
+
+        glVertex3f(min[0],max[1],min[2]);
+        glVertex3f(max[0],max[1],min[2]);
+
+        glVertex3f(max[0],min[1],min[2]);
+        glVertex3f(max[0],max[1],min[2]);
+
+        //face above
+        glVertex3f(max[0],min[1],max[2]);
+        glVertex3f(min[0],min[1],max[2]);
+
+        glVertex3f(max[0],max[1],max[2]);
+        glVertex3f(min[0],max[1],max[2]);
+
+        glVertex3f(max[0],max[1],max[2]);
+        glVertex3f(max[0],min[1],max[2]);
+
+        glVertex3f(min[0],max[1],max[2]);
+        glVertex3f(min[0],min[1],max[2]);
+
+        //side lines
+        glVertex3f(max[0],min[1],max[2]);
+        glVertex3f(max[0],min[1],min[2]);
+
+        glVertex3f(min[0],min[1],min[2]);
+        glVertex3f(min[0],min[1],max[2]);
+
+        glVertex3f(max[0],max[1],max[2]);
+        glVertex3f(max[0],max[1],min[2]);
+
+        glVertex3f(min[0],max[1],max[2]);
+        glVertex3f(min[0],max[1],min[2]);
+
+        glEnd();
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    }
+
+    void drawKDTree(KDNode node){
+        if ((node.leftChild != nullptr) && (node.leftChild != nullptr)) {
+            drawKDTree(*node.leftChild);
+            drawKDTree(*node.leftChild);
+        } else {
+            drawBox(point3d(node.bbox.xMin,node.bbox.yMin,node.bbox.zMin),point3d(node.bbox.xMax,node.bbox.yMax,node.bbox.zMax));
+        }
+    }
+
 
     void pickBackgroundColor() {
         QColor _bc = QColorDialog::getColor( this->backgroundColor(), this);
