@@ -118,6 +118,7 @@ public :
         tree.root = tree.buildKDTree(iota, pointSet);
         std::cout << "Done: KDTree" << std::endl;
 
+        // iota2 because first iota is not const
         std::vector<int> iota2(pointSet.size()) ;
         std::iota (std::begin(iota2), std::end(iota2), 0);
     }
@@ -128,7 +129,7 @@ public :
             drawKDTree(tree.root);
         }
         if (showWindingNumber) {
-
+            drawWindingNumberTetra();
         }
         if (showTetra) {
             glColor3f(0.5,0.5,0.8);
@@ -238,17 +239,38 @@ public :
     }
 
     void drawWindingNumberTetra() {
+        std::vector<int> iota(pointSet.size()) ;
+        std::iota (std::begin(iota), std::end(iota), 0);
         double wn = 0;
+        glBegin(GL_LINES);
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
             point4ui tet = tetmesh.tetrahedron(t);
             point3d const & p0 = tetmesh.vertex(tet.x());
             point3d const & p1 = tetmesh.vertex(tet.y());
             point3d const & p2 = tetmesh.vertex(tet.z());
             point3d const & p3 = tetmesh.vertex(tet.w());
+            wn = tree.fastWN( (p0+p1+p2+p3)/4, iota, pointSet);
             if (wn > 0.5) {
+                glVertex3f(p0[0],p0[1],p0[2]);
+                glVertex3f(p1[0],p1[1],p1[2]);
 
+                glVertex3f(p0[0],p0[1],p0[2]);
+                glVertex3f(p2[0],p2[1],p2[2]);
+
+                glVertex3f(p0[0],p0[1],p0[2]);
+                glVertex3f(p3[0],p3[1],p3[2]);
+
+                glVertex3f(p1[0],p1[1],p1[2]);
+                glVertex3f(p2[0],p2[1],p2[2]);
+
+                glVertex3f(p1[0],p1[1],p1[2]);
+                glVertex3f(p3[0],p3[1],p3[2]);
+
+                glVertex3f(p3[0],p3[1],p3[2]);
+                glVertex3f(p2[0],p2[1],p2[2]);
             }
         }
+        glEnd();
     }
 
 
@@ -334,8 +356,11 @@ public :
         else if( event->key() == Qt::Key_P ) {
             showTetra = showTetra ? false : true ;
         }
-        else if ( event->key() == Qt::Key_W ){
+        else if ( event->key() == Qt::Key_K ){
             showKDTree = showKDTree ? false : true ;
+        }
+        else if ( event->key() == Qt::Key_W ){
+            showWindingNumber = showWindingNumber ? false : true ;
         }
         else if ( event->key() == Qt::Key_Right){
 
