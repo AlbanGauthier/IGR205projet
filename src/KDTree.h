@@ -180,11 +180,10 @@ struct KDTree {
         point3d treeP = root.meanP; // = ptilde
         double treeR = 0;
         point3d nTilde = root.meanN;
-        //double areaSum = root.area;
 
         //computes treeR, maximum distance from tree.p to any of its elements
         for(unsigned i = 0; i<indices.size(); i++) {
-            double temp = (treeP-pointSet[indices[0]].p).norm();
+            double temp = (treeP-pointSet[indices[i]].p).norm();
             if (temp > treeR) treeR = temp;
         }
 
@@ -192,7 +191,7 @@ struct KDTree {
             return point3d::dot(treeP - q,nTilde)/(4*M_PI*(treeP - q).norm()); // = wtilde
         } else {
             double val = 0;
-            if (root.data.size() == 0 && root.data.size() == 0) {
+            if (root.leftChild == nullptr && root.rightChild == nullptr) {
                 for (unsigned int j = 0 ; j<root.data.size() ; j++) {
                     point3d p = pointSet[root.data[j]].p;
                     point3d n = pointSet[root.data[j]].n;

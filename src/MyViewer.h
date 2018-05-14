@@ -117,10 +117,6 @@ public :
 
         tree.root = tree.buildKDTree(iota, pointSet);
         std::cout << "Done: KDTree" << std::endl;
-
-        // iota2 because first iota is not const
-        std::vector<int> iota2(pointSet.size()) ;
-        std::iota (std::begin(iota2), std::end(iota2), 0);
     }
 
     //Draw
