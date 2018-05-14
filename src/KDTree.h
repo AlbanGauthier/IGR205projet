@@ -12,6 +12,7 @@ struct BBox{
 struct KDNode{
     BBox bbox;
     std::vector<int> data;
+    point3d meanP, meanN;
     KDNode *leftChild;
     KDNode *rightChild;
 };
@@ -93,13 +94,30 @@ struct KDTree {
         }
     }
 
-    int findMedianNormal(std::vector<int> const & sortedIndices, std::vector<Triplet> & pointSet){
-        if (sortedIndices.size() % 2 == 1){
-            return sortedIndices[(sortedIndices.size()-1)/2];
+    point3d findMeanPoint(std::vector<int> const & sortedIndices, std::vector<Triplet> & pointSet){
+        point3d meanP = point3d(0,0,0);
+        double areaSum = 0;
+
+        for(unsigned i = 0; i<pointSet.size(); i++) {
+            double area = pointSet[i].area;
+            meanP += area * pointSet[i].p;
+            areaSum += area;
         }
-        else{
-            return (sortedIndices[sortedIndices.size()/2] + sortedIndices[sortedIndices.size()/2 + 1])/2;
+        meanP /= areaSum;
+        return meanP;
+    }
+
+    point3d findMeanNormal(std::vector<int> const & sortedIndices, std::vector<Triplet> & pointSet){
+        point3d meanN = point3d(0,0,0);
+        double areaSum = 0;
+
+        for(unsigned i = 0; i<pointSet.size(); i++) {
+            double area = pointSet[i].area;
+            meanN += area * pointSet[i].n;
+            areaSum += area;
         }
+        meanN /= areaSum;
+        return meanN;
     }
 
     KDNode buildKDTree(std::vector<int> const & indices, std::vector<Triplet> & pointSet){
@@ -116,6 +134,8 @@ struct KDTree {
 
             n.bbox = B;
             n.data = indices;
+            n.meanP = pointSet[indices[0]].p;
+            n.meanN = pointSet[indices[0]].n;
             n.leftChild = nullptr;
             n.rightChild = nullptr;
             return n;
@@ -124,8 +144,8 @@ struct KDTree {
         BBox B = computeBoundingBox(indices, pointSet);
         int maxAxis = findMaxAxis(B);
         std::vector<int> const & sortedInd = sortIndAlongAxis(indices, maxAxis, pointSet);
-        int q = findMedianSample(sortedInd, pointSet);
-        int o = findMedianNormal(sortedInd, pointSet);
+        point3d mp = findMeanPoint(sortedInd, pointSet);
+        point3d mn = findMeanNormal(sortedInd, pointSet);
 
         std::vector<int> upperPartition;
         std::vector<int> lowerPartition;
@@ -146,6 +166,8 @@ struct KDTree {
 
         n.bbox = B;
         n.data = indices;
+        n.meanP = mp;
+        n.meanN = mn;
         n.leftChild = leftC;
         n.rightChild = rightC;
         return n;
@@ -155,19 +177,10 @@ struct KDTree {
 
         //initialization
         double beta = 2.3; // accuracy : the article cites 2 for triangles, 2.3 for points
-        point3d treeP = point3d(0,0,0); // = ptilde
+        point3d treeP = root.meanP; // = ptilde
         double treeR = 0;
-        point3d nTilde = point3d(0,0,0);
-        double areaSum = 0;
-
-        //computes treeP=ptilde and nTilde
-        for(unsigned i = 0; i<indices.size(); i++) {
-            double area = pointSet[indices[0]].area;
-            treeP += area * pointSet[indices[0]].p;
-            nTilde += area * pointSet[indices[0]].n;
-            areaSum += area;
-        }
-        treeP /= areaSum;
+        point3d nTilde = root.meanN;
+        //double areaSum = root.area;
 
         //computes treeR, maximum distance from tree.p to any of its elements
         for(unsigned i = 0; i<indices.size(); i++) {
@@ -178,7 +191,7 @@ struct KDTree {
         if ((q - treeP).norm() > beta * treeR) {
             return point3d::dot(treeP - q,nTilde)/(4*M_PI*(treeP - q).norm()); // = wtilde
         } else {
-            val = 0;
+            double val = 0;
             if (root.data.size() == 0 && root.data.size() == 0) {
                 for (unsigned int j = 0 ; j<root.data.size() ; j++) {
                     point3d p = pointSet[root.data[j]].p;

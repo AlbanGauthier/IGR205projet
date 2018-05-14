@@ -120,8 +120,6 @@ public :
 
         std::vector<int> iota2(pointSet.size()) ;
         std::iota (std::begin(iota2), std::end(iota2), 0);
-
-        tree.root.windingNumber(iota2, pointSet);
     }
 
     //Draw
