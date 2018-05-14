@@ -172,9 +172,6 @@ public :
     }
 
     void drawBox(point3d min, point3d max){
-        //std::cout << min[0] << " " << min[1] << " " << min[2] << std::endl;
-        //std::cout << max[0] << " " << max[1] << " " << max[2] << std::endl;
-
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // this tells it to only render lines
         glBegin(GL_LINES);
 
@@ -227,7 +224,7 @@ public :
         if ((node.leftChild != nullptr) && (node.leftChild != nullptr)) {
             drawBox(point3d(node.bbox.xMin,node.bbox.yMin,node.bbox.zMin),point3d(node.bbox.xMax,node.bbox.yMax,node.bbox.zMax));
             drawKDTree(*node.leftChild);
-            drawKDTree(*node.leftChild);
+            drawKDTree(*node.rightChild);
         } else {
             //drawBox(point3d(node.bbox.xMin,node.bbox.yMin,node.bbox.zMin),point3d(node.bbox.xMax,node.bbox.yMax,node.bbox.zMax));
         }
@@ -318,6 +315,12 @@ public :
         }
         else if ( event->key() == Qt::Key_W ){
             showKDTree = showKDTree ? false : true ;
+        }
+        else if ( event->key() == Qt::Key_Right){
+
+        }
+        else if ( event->key() == Qt::Key_Left){
+
         }
     }
 

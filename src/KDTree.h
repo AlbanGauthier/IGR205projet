@@ -52,6 +52,7 @@ struct KDTree {
                 B.zMax = pointSet[indices[i]].p[2];
             }
         }
+        return B;
     }
 
     std::vector<int> sortIndAlongAxis(std::vector<int> const & indices, int axis, std::vector<Triplet> & pointSet){
