@@ -5,6 +5,9 @@
 #include "Mesh.h"
 #include "tetgenhandler.h"
 
+//KDTree
+#include "KDTree.h"
+
 // Parsing:
 #include "BasicIO.h"
 
@@ -21,153 +24,22 @@
 #include <QKeyEvent>
 
 static bool showTetra = false;
+static bool showKDTree = false;
 
 class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
 {
     Q_OBJECT
 
+    KDTree tree;
     Mesh mesh;
     TetGenHandler tetmesh;
     std::vector<Triplet> pointSet;
+    std::vector<double> windingNumbers;
 
 public :
 
     MyViewer(QGLWidget * parent = NULL) : QGLViewer(parent) , QOpenGLFunctions_3_0() {
         setWindowTitle(QString("Our cool project. PRESS 'H' FOR HELP!"));
-    }
-
-    //KDTree
-    BBox computeBoundingBox(std::vector<Triplet> points){
-        BBox B;
-        B.xMin = points[0].p[0];
-        B.xMax = points[0].p[0];
-        B.yMin = points[0].p[1];
-        B.yMax = points[0].p[1];
-        B.zMin = points[0].p[2];
-        B.zMax = points[0].p[2];
-
-        for (int i = 1 ; i<points.size() ; i++){
-            if (points[i].p[0] < B.xMin){
-                B.xMin = points[i].p[0];
-            }
-            else if (points[i].p[0] > B.xMax){
-                B.xMax = points[i].p[0];
-            }
-
-            if (points[i].p[1] < B.yMin){
-                B.yMin = points[i].p[1];
-            }
-            else if (points[i].p[1] > B.yMax){
-                B.yMax = points[i].p[1];
-            }
-
-            if (points[i].p[2] < B.zMin){
-                B.zMin = points[i].p[2];
-            }
-            else if (points[i].p[2] > B.zMax){
-                B.zMax = points[i].p[2];
-            }
-        }
-    }
-
-    std::vector<Triplet> sortPtsAlongAxis(std::vector<Triplet> points, int axis){
-        std::vector<Triplet> sortedPoints;
-        int n = points.size();
-        for (int i = 0 ; i<n ; i++){
-            int minIndex = 0;
-            int minCoord = points[0].p[axis];
-            for (int j = 1 ; j<points.size() ; j++){
-                if (points[j].p[axis] < minCoord){
-                    minIndex = j;
-                    minCoord = points[j].p[axis];
-                }
-            }
-            sortedPoints.push_back(points[minIndex]);
-            points.erase(points.begin() + minIndex);
-        }
-        return sortedPoints;
-    }
-
-    int findMaxAxis(BBox B){
-        int longestAxis = 0;
-        if (B.yMax-B.yMin > B.xMax-B.xMin){
-            longestAxis = 1;
-        }
-        if (B.zMax-B.zMin > B.xMax-B.xMin || B.zMax-B.zMin > B.yMax-B.yMin){
-            longestAxis = 2;
-        }
-        return longestAxis;
-    }
-
-    point3d findMedianSample(std::vector<Triplet> sortedPts){
-        if (sortedPts.size() % 2 == 1){
-            return sortedPts[(sortedPts.size()-1)/2].p;
-        }
-        else{
-            return (sortedPts[sortedPts.size()/2].p + sortedPts[sortedPts.size()/2 + 1].p)/2;
-        }
-    }
-
-    point3d findMedianNormal(std::vector<Triplet> sortedPts){
-        if (sortedPts.size() % 2 == 1){
-            return sortedPts[(sortedPts.size()-1)/2].n;
-        }
-        else{
-            return (sortedPts[sortedPts.size()/2].n + sortedPts[sortedPts.size()/2 + 1].n)/2;
-        }
-    }
-
-    KDNode buildKDTree(std::vector<Triplet> points){
-        if (points.size() == 1){
-            KDNode n;
-            n.data = points[0];
-            n.leftChild = NULL;
-            n.rightChild = NULL;
-            return n;
-        }
-
-        BBox B = computeBoundingBox(points);
-        int maxAxis = findMaxAxis(B);
-        std::vector<Triplet> sortedPts = sortPtsAlongAxis(points, maxAxis);
-        point3d q = findMedianSample(sortedPts);
-        point3d o = findMedianNormal(sortedPts);
-
-        std::vector<Triplet> upperPartition;
-        std::vector<Triplet> lowerPartition;
-        for (int i = 0 ; i<sortedPts.size() ; i++){
-            if (i < sortedPts.size()/2){
-                lowerPartition.push_back(sortedPts[i]);
-            }
-            else{
-                upperPartition.push_back(sortedPts[i]);
-            }
-        }
-
-        KDNode n;
-        n.data.area = 1;
-        n.data.p = q;
-        n.data.n = o;
-        KDNode left = buildKDTree(upperPartition);
-        KDNode right = buildKDTree(lowerPartition);
-        KDNode *leftC = new KDNode(left);
-        KDNode *rightC = new KDNode(right);
-        n.leftChild = leftC;
-        n.rightChild = rightC;
-        return n;
-    }
-
-    //Initialization
-    void createPointSet(){
-        for (int i = 0 ; i<mesh.triangles.size() ; i++){
-            point3d p0 = mesh.vertices[mesh.triangles[i][0]].p;
-            point3d p1 = mesh.vertices[mesh.triangles[i][1]].p;
-            point3d p2 = mesh.vertices[mesh.triangles[i][2]].p;
-            Triplet t;
-            t.area = 1;
-            t.p = p0/3+p1/3+p2/3;
-            t.n = point3d::cross(p1-p0, p2-p0);
-            pointSet.push_back(t);
-        }
     }
 
     std::vector< point3d > fromMeshToPointSet(Mesh m, std::vector< Triplet > & TripletList) {
@@ -211,34 +83,139 @@ public :
         return pointCloud;
     }
 
-
     void mainFunction(){
+
+        //computes points cloud
         std::vector< point3d > const cloudPositions = fromMeshToPointSet(mesh, pointSet);
         tetmesh.tetMesh;
         tetmesh.TetGenHandler::computeTetMeshFromCloud ( cloudPositions );
         //createPointSet();
         std::cout << "PointSet created : " << pointSet.size() << " points" << std::endl;
-        KDNode tree = buildKDTree(pointSet);
-        std::cout << "KDTree created : " << std::endl;
+
+        //tetraedralization
+        tetmesh.computeTetMeshFromCloud ( cloudPositions );
+        std::cout << "Done: Tetraedralization" << std::endl;
+
+        // initialize indices vector with : 0,1,2...
+        std::vector<int> iota(pointSet.size()) ;
+        std::iota (std::begin(iota), std::end(iota), 0);
+
+        tree.root = tree.buildKDTree(iota, pointSet);
+        std::cout << "Done: KDTree" << std::endl;
     }
 
     //Draw
     void draw() {
-        glEnable( GL_LIGHTING );
-        glColor3f(0.5,0.5,0.8);
-        glBegin(GL_TRIANGLES);
-        for( unsigned int t = 0 ; t < mesh.triangles.size() ; ++t ) {
-            point3d const & p0 = mesh.vertices[ mesh.triangles[t][0] ].p;
-            point3d const & p1 = mesh.vertices[ mesh.triangles[t][1] ].p;
-            point3d const & p2 = mesh.vertices[ mesh.triangles[t][2] ].p;
-            point3d const & n = point3d::cross( p1-p0 , p2-p0 ).direction();
-            glNormal3f(n[0],n[1],n[2]);
-            glVertex3f(p0[0],p0[1],p0[2]);
-            glVertex3f(p1[0],p1[1],p1[2]);
-            glVertex3f(p2[0],p2[1],p2[2]);
+        if (showKDTree) {
+            drawKDTree(tree.root);
         }
-        glEnd();
+        if (showTetra) {
+            glColor3f(0.5,0.5,0.8);
+            glBegin(GL_LINES);
+            for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
+                point4ui tet = tetmesh.tetrahedron(t);
+                point3d const & p0 = tetmesh.vertex(tet.x());
+                point3d const & p1 = tetmesh.vertex(tet.y());
+                point3d const & p2 = tetmesh.vertex(tet.z());
+                point3d const & p3 = tetmesh.vertex(tet.w());
+
+                glVertex3f(p0[0],p0[1],p0[2]);
+                glVertex3f(p1[0],p1[1],p1[2]);
+
+                glVertex3f(p0[0],p0[1],p0[2]);
+                glVertex3f(p2[0],p2[1],p2[2]);
+
+                glVertex3f(p0[0],p0[1],p0[2]);
+                glVertex3f(p3[0],p3[1],p3[2]);
+
+                glVertex3f(p1[0],p1[1],p1[2]);
+                glVertex3f(p2[0],p2[1],p2[2]);
+
+                glVertex3f(p1[0],p1[1],p1[2]);
+                glVertex3f(p3[0],p3[1],p3[2]);
+
+                glVertex3f(p3[0],p3[1],p3[2]);
+                glVertex3f(p2[0],p2[1],p2[2]);
+            }
+            glEnd();
+        }
+        else {
+            glEnable( GL_LIGHTING );
+            glColor3f(0.5,0.5,0.8);
+            glBegin(GL_TRIANGLES);
+            for( unsigned int t = 0 ; t < mesh.triangles.size() ; ++t ) {
+                point3d const & p0 = mesh.vertices[ mesh.triangles[t][0] ].p;
+                point3d const & p1 = mesh.vertices[ mesh.triangles[t][1] ].p;
+                point3d const & p2 = mesh.vertices[ mesh.triangles[t][2] ].p;
+                point3d const & n = point3d::cross( p1-p0 , p2-p0 ).direction();
+                glNormal3f(n[0],n[1],n[2]);
+                glVertex3f(p0[0],p0[1],p0[2]);
+                glVertex3f(p1[0],p1[1],p1[2]);
+                glVertex3f(p2[0],p2[1],p2[2]);
+            }
+            glEnd();
+        }
     }
+
+    void drawBox(point3d min, point3d max){
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // this tells it to only render lines
+        glBegin(GL_LINES);
+
+        glColor3f(1.0, 1.0, 1.0);
+        //face below
+        glVertex3f(min[0],min[1],min[2]);
+        glVertex3f(max[0],min[1],min[2]);
+
+        glVertex3f(min[0],min[1],min[2]);
+        glVertex3f(min[0],max[1],min[2]);
+
+        glVertex3f(min[0],max[1],min[2]);
+        glVertex3f(max[0],max[1],min[2]);
+
+        glVertex3f(max[0],min[1],min[2]);
+        glVertex3f(max[0],max[1],min[2]);
+
+        //face above
+        glVertex3f(max[0],min[1],max[2]);
+        glVertex3f(min[0],min[1],max[2]);
+
+        glVertex3f(max[0],max[1],max[2]);
+        glVertex3f(min[0],max[1],max[2]);
+
+        glVertex3f(max[0],max[1],max[2]);
+        glVertex3f(max[0],min[1],max[2]);
+
+        glVertex3f(min[0],max[1],max[2]);
+        glVertex3f(min[0],min[1],max[2]);
+
+        //side lines
+        glVertex3f(max[0],min[1],max[2]);
+        glVertex3f(max[0],min[1],min[2]);
+
+        glVertex3f(min[0],min[1],min[2]);
+        glVertex3f(min[0],min[1],max[2]);
+
+        glVertex3f(max[0],max[1],max[2]);
+        glVertex3f(max[0],max[1],min[2]);
+
+        glVertex3f(min[0],max[1],max[2]);
+        glVertex3f(min[0],max[1],min[2]);
+
+        glEnd();
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    }
+
+    void drawKDTree(KDNode node){
+        if ((node.leftChild != nullptr) && (node.leftChild != nullptr)) {
+            drawKDTree(*node.leftChild);
+            drawKDTree(*node.leftChild);
+        } else {
+            drawBox(point3d(node.bbox.xMin,node.bbox.yMin,node.bbox.zMin),point3d(node.bbox.xMax,node.bbox.yMax,node.bbox.zMax));
+        }
+    }
+
 
     void pickBackgroundColor() {
         QColor _bc = QColorDialog::getColor( this->backgroundColor(), this);
@@ -321,6 +298,9 @@ public :
         }
         else if( event->key() == Qt::Key_P ) {
             showTetra = showTetra ? false : true ;
+        }
+        else if ( event->key() == Qt::Key_W ){
+            showKDTree = showKDTree ? false : true ;
         }
     }
 
