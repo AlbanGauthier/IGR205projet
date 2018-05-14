@@ -186,18 +186,22 @@ struct KDTree {
             double temp = (treeP-pointSet[indices[i]].p).norm();
             if (temp > treeR) treeR = temp;
         }
+        std::cout << "init and treeR ok" << std::endl;
 
         if ((q - treeP).norm() > beta * treeR) {
+            std::cout << "use meanP" << std::endl;
             return point3d::dot(treeP - q,nTilde)/(4*M_PI*(treeP - q).norm()); // = wtilde
         } else {
             double val = 0;
             if (root.leftChild == nullptr && root.rightChild == nullptr) {
+                std::cout << "leaf" << std::endl;
                 for (unsigned int j = 0 ; j<root.data.size() ; j++) {
                     point3d p = pointSet[root.data[j]].p;
                     point3d n = pointSet[root.data[j]].n;
                     val += point3d::dot(p - q,n)/(4*M_PI*(p - q).norm());
                 }
             } else {
+                std::cout << "go to children" << std::endl;
                 val += fastWN(q, root.leftChild->data, pointSet);
                 val += fastWN(q, root.rightChild->data, pointSet);
             }

@@ -117,6 +117,21 @@ public :
 
         tree.root = tree.buildKDTree(iota, pointSet);
         std::cout << "Done: KDTree" << std::endl;
+
+        //computes WN of tetra
+        std::vector<int> iota2(pointSet.size()) ;
+        std::iota (std::begin(iota2), std::end(iota2), 0);
+        double wn = 0;
+        for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
+            point4ui tet = tetmesh.tetrahedron(t);
+            point3d const & p0 = tetmesh.vertex(tet.x());
+            point3d const & p1 = tetmesh.vertex(tet.y());
+            point3d const & p2 = tetmesh.vertex(tet.z());
+            point3d const & p3 = tetmesh.vertex(tet.w());
+            wn = tree.fastWN( (p0+p1+p2+p3)/4, iota2, pointSet);
+            windingNumbers.push_back(wn);
+        }
+        std::cout << "Done: WindingNumbers of Tet" << std::endl;
     }
 
     //Draw
@@ -235,9 +250,7 @@ public :
     }
 
     void drawWindingNumberTetra() {
-        std::vector<int> iota(pointSet.size()) ;
-        std::iota (std::begin(iota), std::end(iota), 0);
-        double wn = 0;
+
         glBegin(GL_LINES);
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
             point4ui tet = tetmesh.tetrahedron(t);
@@ -245,7 +258,7 @@ public :
             point3d const & p1 = tetmesh.vertex(tet.y());
             point3d const & p2 = tetmesh.vertex(tet.z());
             point3d const & p3 = tetmesh.vertex(tet.w());
-            wn = tree.fastWN( (p0+p1+p2+p3)/4, iota, pointSet);
+            double wn = windingNumbers[t];
             if (wn > 0.5) {
                 glVertex3f(p0[0],p0[1],p0[2]);
                 glVertex3f(p1[0],p1[1],p1[2]);
