@@ -296,6 +296,9 @@ public :
         else if( event->key() == Qt::Key_P ) {
             showTetra = showTetra ? false : true ;
         }
+        else if ( event->key() == Qt::Key_W ){
+            showKDTree = showKDTree ? false : true ;
+        }
     }
 
     void mouseDoubleClickEvent( QMouseEvent * e ) {

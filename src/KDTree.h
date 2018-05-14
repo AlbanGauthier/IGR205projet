@@ -14,7 +14,7 @@ struct KDNode{
     std::vector<int> data;
     KDNode *leftChild;
     KDNode *rightChild;
-    double windingNumber;
+    double windingNumber = 0;
 };
 
 struct KDTree {
@@ -128,7 +128,7 @@ struct KDTree {
 
         std::vector<int> upperPartition;
         std::vector<int> lowerPartition;
-        for (int i = 0 ; i<sortedInd.size() ; i++){
+        for (unsigned int i = 0 ; i<sortedInd.size() ; i++){
             if (i < sortedInd.size()/2){
                 lowerPartition.push_back(sortedInd[i]);
             }
@@ -152,7 +152,7 @@ struct KDTree {
 
     //Initialization
     void createPointSet(Mesh const & mesh, std::vector<Triplet> & pointSet){
-        for (int i = 0 ; i<mesh.triangles.size() ; i++){
+        for (unsigned int i = 0 ; i<mesh.triangles.size() ; i++){
             point3d p0 = mesh.vertices[mesh.triangles[i][0]].p;
             point3d p1 = mesh.vertices[mesh.triangles[i][1]].p;
             point3d p2 = mesh.vertices[mesh.triangles[i][2]].p;
@@ -194,18 +194,18 @@ struct KDTree {
             if ((q - treep).norm() > beta * treer) {
                 root.windingNumber = point3d::dot(treep - q,ntilde)/(4*M_PI*(treep - q).norm()); // = wtilde
             } else {
-                double val = 0;
+                root.windingNumber = 0;
                 if (root.data.size() == 0 && root.data.size() == 0) {
                     for (unsigned int j = 0 ; j<root.data.size() ; j++) {
                         point3d p = pointSet[root.data[j]].p;
                         point3d n = pointSet[root.data[j]].n;
-                        val += point3d::dot(p - q,n)/(4*M_PI*(p - q).norm());
+                        root.windingNumber += point3d::dot(p - q,n)/(4*M_PI*(p - q).norm());
                     }
                 } else {
                     fastwn(root.leftChild->data, pointSet);
                     fastwn(root.rightChild->data, pointSet);
                 }
-                root.windingNumber = root.leftChild->windingNumber + root.rightChild->windingNumber;
+                root.windingNumber += root.leftChild->windingNumber + root.rightChild->windingNumber;
             }
         }
     }
