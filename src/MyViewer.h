@@ -215,8 +215,8 @@ public :
     void mainFunction(){
         std::vector< point3d > const cloudPositions = fromMeshToPointSet(mesh, pointSet);
         tetmesh.tetMesh;
-        tetmesh = TetGenHandler::computeTetMeshFromCloud ( cloudPositions );
-        createPointSet();
+        tetmesh.TetGenHandler::computeTetMeshFromCloud ( cloudPositions );
+        //createPointSet();
         std::cout << "PointSet created : " << pointSet.size() << " points" << std::endl;
         KDNode tree = buildKDTree(pointSet);
         std::cout << "KDTree created : " << std::endl;

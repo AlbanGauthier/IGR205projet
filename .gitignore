@@ -3,3 +3,4 @@
 /nameOfYourApp
 *.qmake.stash
 *.qglviewer.xml
+/Makefile
