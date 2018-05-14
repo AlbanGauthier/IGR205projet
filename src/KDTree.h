@@ -56,18 +56,19 @@ struct KDTree {
 
     std::vector<int> sortIndAlongAxis(std::vector<int> const & indices, int axis, std::vector<Triplet> & pointSet){
         std::vector<int> sortedInd;
+        std::vector<int> tempIndices = indices;
         int n = indices.size();
         for (int i = 0 ; i<n ; i++){
             int minIndex = 0;
-            int minCoord = pointSet[indices[0]].p[axis];
-            for (int j = 1 ; j<indices.size() ; j++){
-                if (pointSet[indices[j]].p[axis] < minCoord){
+            int minCoord = pointSet[tempIndices[0]].p[axis];
+            for (int j = 1 ; j<tempIndices.size() ; j++){
+                if (pointSet[tempIndices[j]].p[axis] < minCoord){
                     minIndex = j;
-                    minCoord = pointSet[indices[j]].p[axis];
+                    minCoord = pointSet[tempIndices[j]].p[axis];
                 }
             }
-            sortedInd.push_back(indices[minIndex]);
-            //indices.erase(indices.begin() + minIndex);
+            sortedInd.push_back(tempIndices[minIndex]);
+            tempIndices.erase(tempIndices.begin() + minIndex);
         }
         return sortedInd;
     }
@@ -150,49 +151,35 @@ struct KDTree {
         return n;
     }
 
-    //Initialization
-    void createPointSet(Mesh const & mesh, std::vector<Triplet> & pointSet){
-        for (unsigned int i = 0 ; i<mesh.triangles.size() ; i++){
-            point3d p0 = mesh.vertices[mesh.triangles[i][0]].p;
-            point3d p1 = mesh.vertices[mesh.triangles[i][1]].p;
-            point3d p2 = mesh.vertices[mesh.triangles[i][2]].p;
-            Triplet t;
-            t.area = 1;
-            t.p = p0/3+p1/3+p2/3;
-            t.n = point3d::cross(p1-p0, p2-p0);
-            pointSet.push_back(t);
-        }
-    }
-
-    void fastwn(std::vector<int> const & indices, std::vector<Triplet> const & pointSet) {
+    void fastWN(std::vector<int> const & indices, std::vector<Triplet> const & pointSet) {
 
         //initialization
         double beta = 2.3; // accuracy : the article cites 2 for triangles, 2.3 for points
-        point3d treep = point3d(0,0,0); // = ptilde
-        double treer = 0;
-        point3d ntilde = point3d(0,0,0);
+        point3d treeP = point3d(0,0,0); // = ptilde
+        double treeR = 0;
+        point3d nTilde = point3d(0,0,0);
         double areaSum = 0;
 
-        //computes ptilde and ntilde
+        //computes treeP=ptilde and nTilde
         for(unsigned i = 0; i<indices.size(); i++) {
             double area = pointSet[indices[0]].area;
-            treep += area * pointSet[indices[0]].p;
-            ntilde += area * pointSet[indices[0]].n;
+            treeP += area * pointSet[indices[0]].p;
+            nTilde += area * pointSet[indices[0]].n;
             areaSum += area;
         }
-        treep /= areaSum;
+        treeP /= areaSum;
 
-        //computes treer, maximum distance from tree.p to any of its elements
+        //computes treeR, maximum distance from tree.p to any of its elements
         for(unsigned i = 0; i<indices.size(); i++) {
-            double temp = (treep-pointSet[indices[0]].p).norm();
-            if (temp > treer) treer = temp;
+            double temp = (treeP-pointSet[indices[0]].p).norm();
+            if (temp > treeR) treeR = temp;
         }
 
         // for all points in the pointSet
         for (unsigned int i = 0 ; i<pointSet.size() ; i++) {
             point3d q = pointSet[i].p;
-            if ((q - treep).norm() > beta * treer) {
-                root.windingNumber = point3d::dot(treep - q,ntilde)/(4*M_PI*(treep - q).norm()); // = wtilde
+            if ((q - treeP).norm() > beta * treeR) {
+                root.windingNumber = point3d::dot(treeP - q,nTilde)/(4*M_PI*(treeP - q).norm()); // = wtilde
             } else {
                 root.windingNumber = 0;
                 if (root.data.size() == 0 && root.data.size() == 0) {
@@ -202,8 +189,8 @@ struct KDTree {
                         root.windingNumber += point3d::dot(p - q,n)/(4*M_PI*(p - q).norm());
                     }
                 } else {
-                    fastwn(root.leftChild->data, pointSet);
-                    fastwn(root.rightChild->data, pointSet);
+                    fastWN(root.leftChild->data, pointSet);
+                    fastWN(root.rightChild->data, pointSet);
                 }
                 root.windingNumber += root.leftChild->windingNumber + root.rightChild->windingNumber;
             }

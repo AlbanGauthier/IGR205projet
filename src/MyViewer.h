@@ -83,6 +83,20 @@ public :
         return pointCloud;
     }
 
+    //Initialization
+    void createPointSet(Mesh const & mesh, std::vector<Triplet> & pointSet){
+        for (unsigned int i = 0 ; i<mesh.triangles.size() ; i++){
+            point3d p0 = mesh.vertices[mesh.triangles[i][0]].p;
+            point3d p1 = mesh.vertices[mesh.triangles[i][1]].p;
+            point3d p2 = mesh.vertices[mesh.triangles[i][2]].p;
+            Triplet t;
+            t.area = 1;
+            t.p = p0/3+p1/3+p2/3;
+            t.n = point3d::cross(p1-p0, p2-p0);
+            pointSet.push_back(t);
+        }
+    }
+
     void mainFunction(){
 
         //computes points cloud
@@ -158,11 +172,13 @@ public :
     }
 
     void drawBox(point3d min, point3d max){
+        //std::cout << min[0] << " " << min[1] << " " << min[2] << std::endl;
+        //std::cout << max[0] << " " << max[1] << " " << max[2] << std::endl;
 
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // this tells it to only render lines
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // this tells it to only render lines
         glBegin(GL_LINES);
 
-        glColor3f(1.0, 1.0, 1.0);
+        glColor3f(1.0, 0.0, 0.0);
         //face below
         glVertex3f(min[0],min[1],min[2]);
         glVertex3f(max[0],min[1],min[2]);
@@ -203,16 +219,17 @@ public :
         glVertex3f(min[0],max[1],min[2]);
 
         glEnd();
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     }
 
     void drawKDTree(KDNode node){
         if ((node.leftChild != nullptr) && (node.leftChild != nullptr)) {
+            drawBox(point3d(node.bbox.xMin,node.bbox.yMin,node.bbox.zMin),point3d(node.bbox.xMax,node.bbox.yMax,node.bbox.zMax));
             drawKDTree(*node.leftChild);
             drawKDTree(*node.leftChild);
         } else {
-            drawBox(point3d(node.bbox.xMin,node.bbox.yMin,node.bbox.zMin),point3d(node.bbox.xMax,node.bbox.yMax,node.bbox.zMax));
+            //drawBox(point3d(node.bbox.xMin,node.bbox.yMin,node.bbox.zMin),point3d(node.bbox.xMax,node.bbox.yMax,node.bbox.zMax));
         }
     }
 
