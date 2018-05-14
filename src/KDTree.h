@@ -14,7 +14,6 @@ struct KDNode{
     std::vector<int> data;
     KDNode *leftChild;
     KDNode *rightChild;
-    double windingNumber = 0;
 };
 
 struct KDTree {
@@ -151,7 +150,7 @@ struct KDTree {
         return n;
     }
 
-    void fastWN(std::vector<int> const & indices, std::vector<Triplet> const & pointSet) {
+    double fastWN(point3d const & q, std::vector<int> const & indices, std::vector<Triplet> const & pointSet) {
 
         //initialization
         double beta = 2.3; // accuracy : the article cites 2 for triangles, 2.3 for points
@@ -175,25 +174,21 @@ struct KDTree {
             if (temp > treeR) treeR = temp;
         }
 
-        // for all points in the pointSet
-        for (unsigned int i = 0 ; i<pointSet.size() ; i++) {
-            point3d q = pointSet[i].p;
-            if ((q - treeP).norm() > beta * treeR) {
-                root.windingNumber = point3d::dot(treeP - q,nTilde)/(4*M_PI*(treeP - q).norm()); // = wtilde
-            } else {
-                root.windingNumber = 0;
-                if (root.data.size() == 0 && root.data.size() == 0) {
-                    for (unsigned int j = 0 ; j<root.data.size() ; j++) {
-                        point3d p = pointSet[root.data[j]].p;
-                        point3d n = pointSet[root.data[j]].n;
-                        root.windingNumber += point3d::dot(p - q,n)/(4*M_PI*(p - q).norm());
-                    }
-                } else {
-                    fastWN(root.leftChild->data, pointSet);
-                    fastWN(root.rightChild->data, pointSet);
+        if ((q - treeP).norm() > beta * treeR) {
+            return point3d::dot(treeP - q,nTilde)/(4*M_PI*(treeP - q).norm()); // = wtilde
+        } else {
+            val = 0;
+            if (root.data.size() == 0 && root.data.size() == 0) {
+                for (unsigned int j = 0 ; j<root.data.size() ; j++) {
+                    point3d p = pointSet[root.data[j]].p;
+                    point3d n = pointSet[root.data[j]].n;
+                    val += point3d::dot(p - q,n)/(4*M_PI*(p - q).norm());
                 }
-                root.windingNumber += root.leftChild->windingNumber + root.rightChild->windingNumber;
+            } else {
+                val += fastWN(q, root.leftChild->data, pointSet);
+                val += fastWN(q, root.rightChild->data, pointSet);
             }
+            return val;
         }
     }
 

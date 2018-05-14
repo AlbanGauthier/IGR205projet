@@ -25,6 +25,7 @@
 
 static bool showTetra = false;
 static bool showKDTree = false;
+static bool showWindingNumber = false;
 
 class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
 {
@@ -116,12 +117,20 @@ public :
 
         tree.root = tree.buildKDTree(iota, pointSet);
         std::cout << "Done: KDTree" << std::endl;
+
+        std::vector<int> iota2(pointSet.size()) ;
+        std::iota (std::begin(iota2), std::end(iota2), 0);
+
+        tree.root.windingNumber(iota2, pointSet);
     }
 
     //Draw
     void draw() {
         if (showKDTree) {
             drawKDTree(tree.root);
+        }
+        if (showWindingNumber) {
+
         }
         if (showTetra) {
             glColor3f(0.5,0.5,0.8);
@@ -230,6 +239,20 @@ public :
             drawKDTree(*node.leftChild);
         } else {
             //drawBox(point3d(node.bbox.xMin,node.bbox.yMin,node.bbox.zMin),point3d(node.bbox.xMax,node.bbox.yMax,node.bbox.zMax));
+        }
+    }
+
+    void drawWindingNumberTetra() {
+        double wn = 0;
+        for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
+            point4ui tet = tetmesh.tetrahedron(t);
+            point3d const & p0 = tetmesh.vertex(tet.x());
+            point3d const & p1 = tetmesh.vertex(tet.y());
+            point3d const & p2 = tetmesh.vertex(tet.z());
+            point3d const & p3 = tetmesh.vertex(tet.w());
+            if (wn > 0.5) {
+
+            }
         }
     }
 
