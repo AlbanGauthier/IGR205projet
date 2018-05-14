@@ -177,7 +177,7 @@ struct KDTree {
         if ((q - treeP).norm() > beta * treeR) {
             return point3d::dot(treeP - q,nTilde)/(4*M_PI*(treeP - q).norm()); // = wtilde
         } else {
-            val = 0;
+            double val = 0;
             if (root.data.size() == 0 && root.data.size() == 0) {
                 for (unsigned int j = 0 ; j<root.data.size() ; j++) {
                     point3d p = pointSet[root.data[j]].p;

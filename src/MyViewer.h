@@ -121,8 +121,6 @@ public :
         // iota2 because first iota is not const
         std::vector<int> iota2(pointSet.size()) ;
         std::iota (std::begin(iota2), std::end(iota2), 0);
-
-        tree.root.windingNumber(iota2, pointSet);
     }
 
     //Draw
@@ -131,7 +129,7 @@ public :
             drawKDTree(tree.root);
         }
         if (showWindingNumber) {
-
+            drawWindingNumberTetra();
         }
         if (showTetra) {
             glColor3f(0.5,0.5,0.8);
@@ -361,8 +359,11 @@ public :
         else if( event->key() == Qt::Key_P ) {
             showTetra = showTetra ? false : true ;
         }
-        else if ( event->key() == Qt::Key_W ){
+        else if ( event->key() == Qt::Key_K ){
             showKDTree = showKDTree ? false : true ;
+        }
+        else if ( event->key() == Qt::Key_W ){
+            showWindingNumber = showWindingNumber ? false : true ;
         }
     }
 
