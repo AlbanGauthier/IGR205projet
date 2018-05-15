@@ -36,6 +36,7 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
     TetGenHandler tetmesh;
     std::vector<Triplet> pointSet;
     std::vector<double> windingNumbers;
+    int KDTreeDisplayDepth = 0;
 
 public :
 
@@ -372,10 +373,11 @@ public :
             showWindingNumber = showWindingNumber ? false : true ;
         }
         else if ( event->key() == Qt::Key_Right){
-
+            KDTreeDisplayDepth++;
         }
         else if ( event->key() == Qt::Key_Left){
-
+            KDTreeDisplayDepth--;
+            if (KDTreeDisplayDepth < 0) KDTreeDisplayDepth = 0;
         }
     }
 

@@ -174,7 +174,6 @@ struct KDTree {
     }
 
     double fastWN(point3d const & q, std::vector<int> const & indices, std::vector<Triplet> const & pointSet) {
-
         //initialization
         double beta = 2.3; // accuracy : the article cites 2 for triangles, 2.3 for points
         point3d treeP = root.meanP; // = ptilde
@@ -184,7 +183,7 @@ struct KDTree {
 
         //computes treeR, maximum distance from tree.p to any of its elements
         for(unsigned i = 0; i<indices.size(); i++) {
-            double temp = (treeP-pointSet[indices[0]].p).norm();
+            double temp = (treeP-pointSet[indices[i]].p).norm();
             if (temp > treeR) treeR = temp;
         }
         std::cout << "init and treeR ok" << std::endl;
