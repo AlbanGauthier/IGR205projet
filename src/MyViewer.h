@@ -115,7 +115,7 @@ public :
         std::vector<int> iota(pointSet.size()) ;
         std::iota (std::begin(iota), std::end(iota), 0);
 
-        tree.root = tree.buildKDTree(iota, pointSet);
+        tree.node = tree.buildKDTree(iota, pointSet);
         std::cout << "Done: KDTree" << std::endl;
 
         //computes WN of tetra
@@ -128,7 +128,7 @@ public :
             point3d const & p1 = tetmesh.vertex(tet.y());
             point3d const & p2 = tetmesh.vertex(tet.z());
             point3d const & p3 = tetmesh.vertex(tet.w());
-            wn = tree.fastWN( (p0+p1+p2+p3)/4, iota2, pointSet);
+            wn = tree.fastWN( (p0+p1+p2+p3)/4, tree.node, pointSet);
             windingNumbers.push_back(wn);
         }
         std::cout << "Done: WindingNumbers of Tet" << std::endl;
@@ -137,12 +137,11 @@ public :
     //Draw
     void draw() {
         if (showKDTree) {
-            drawKDTree(tree.root);
+            drawKDTree(tree.node);
         }
         if (showWindingNumber) {
             drawWindingNumberTetra();
-        }
-        if (showTetra) {
+        } else if (showTetra) {
             glColor3f(0.5,0.5,0.8);
             glBegin(GL_LINES);
             for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
@@ -171,8 +170,7 @@ public :
                 glVertex3f(p2[0],p2[1],p2[2]);
             }
             glEnd();
-        }
-        else {
+        } else {
             glEnable( GL_LIGHTING );
             glColor3f(0.5,0.5,0.8);
             glBegin(GL_TRIANGLES);
@@ -250,7 +248,7 @@ public :
     }
 
     void drawWindingNumberTetra() {
-
+        unsigned int nNeg = 0;
         glBegin(GL_LINES);
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
             point4ui tet = tetmesh.tetrahedron(t);
@@ -259,6 +257,7 @@ public :
             point3d const & p2 = tetmesh.vertex(tet.z());
             point3d const & p3 = tetmesh.vertex(tet.w());
             double wn = windingNumbers[t];
+        //    std::cout << wn << std::endl;
             if (wn > 0.5) {
                 glVertex3f(p0[0],p0[1],p0[2]);
                 glVertex3f(p1[0],p1[1],p1[2]);
@@ -278,8 +277,10 @@ public :
                 glVertex3f(p3[0],p3[1],p3[2]);
                 glVertex3f(p2[0],p2[1],p2[2]);
             }
+            else ++nNeg;
         }
         glEnd();
+        std::cout << nNeg << "  /  " << tetmesh.nTetrahedra() << std::endl;
     }
 
 

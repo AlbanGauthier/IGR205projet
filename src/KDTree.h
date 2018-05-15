@@ -19,7 +19,7 @@ struct KDNode{
 
 struct KDTree {
 
-    KDNode root;
+    KDNode node;
 
     BBox computeBoundingBox(std::vector<int> indices, std::vector<Triplet> & pointSet){
         BBox B;
@@ -98,9 +98,10 @@ struct KDTree {
         point3d meanP = point3d(0,0,0);
         double areaSum = 0;
 
-        for(unsigned i = 0; i<pointSet.size(); i++) {
-            double area = pointSet[i].area;
-            meanP += area * pointSet[i].p;
+        for(unsigned i = 0; i<sortedIndices.size(); i++) {
+            unsigned int v = sortedIndices[i];
+            double area = pointSet[v].area;
+            meanP += area * pointSet[v].p;
             areaSum += area;
         }
         meanP /= areaSum;
@@ -111,9 +112,10 @@ struct KDTree {
         point3d meanN = point3d(0,0,0);
         double areaSum = 0;
 
-        for(unsigned i = 0; i<pointSet.size(); i++) {
-            double area = pointSet[i].area;
-            meanN += area * pointSet[i].n;
+        for(unsigned i = 0; i<sortedIndices.size(); i++) {
+            unsigned int v = sortedIndices[i];
+            double area = pointSet[v].area;
+            meanN += area * pointSet[v].n;
             areaSum += area;
         }
         meanN /= areaSum;
@@ -173,37 +175,35 @@ struct KDTree {
         return n;
     }
 
-    double fastWN(point3d const & q, std::vector<int> const & indices, std::vector<Triplet> const & pointSet) {
+    double fastWN(point3d const & q, KDNode const & node, std::vector<Triplet> const & pointSet) {
 
         //initialization
         double beta = 2.3; // accuracy : the article cites 2 for triangles, 2.3 for points
-        point3d treeP = root.meanP; // = ptilde
+        point3d treeP = node.meanP; // = ptilde
         double treeR = 0;
-        point3d nTilde = root.meanN;
+        point3d nTilde = node.meanN;
 
         //computes treeR, maximum distance from tree.p to any of its elements
-        for(unsigned i = 0; i<indices.size(); i++) {
-            double temp = (treeP-pointSet[indices[i]].p).norm();
+        for(unsigned i = 0; i<node.data.size(); i++) {
+            double temp = (treeP-pointSet[node.data[i]].p).norm();
             if (temp > treeR) treeR = temp;
         }
-        std::cout << "init and treeR ok" << std::endl;
 
         if ((q - treeP).norm() > beta * treeR) {
-            std::cout << "use meanP" << std::endl;
-            return point3d::dot(treeP - q,nTilde)/(4*M_PI*(treeP - q).norm()); // = wtilde
+            double dist = (treeP - q).norm();
+            return point3d::dot(treeP - q,nTilde)/(4*M_PI*dist*dist*dist); // = wtilde
         } else {
             double val = 0;
-            if (root.leftChild == nullptr && root.rightChild == nullptr) {
-                std::cout << "leaf" << std::endl;
-                for (unsigned int j = 0 ; j<root.data.size() ; j++) {
-                    point3d p = pointSet[root.data[j]].p;
-                    point3d n = pointSet[root.data[j]].n;
-                    val += point3d::dot(p - q,n)/(4*M_PI*(p - q).norm());
+            if (node.leftChild == nullptr && node.rightChild == nullptr) {
+                for (unsigned int j = 0 ; j<node.data.size() ; j++) {
+                    point3d p = pointSet[node.data[j]].p;
+                    point3d n = pointSet[node.data[j]].n;
+                    double dist = (p - q).norm();
+                    val += point3d::dot(p - q,n)/(4*M_PI*dist*dist*dist);
                 }
             } else {
-                std::cout << "go to children" << std::endl;
-                val += fastWN(q, root.leftChild->data, pointSet);
-                val += fastWN(q, root.rightChild->data, pointSet);
+                val += fastWN(q, *node.leftChild, pointSet);
+                val += fastWN(q, *node.rightChild, pointSet);
             }
             return val;
         }
