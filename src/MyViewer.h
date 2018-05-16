@@ -35,7 +35,8 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
     TetGenHandler tetmesh;
     std::vector<Triplet> pointSet;
     std::vector<double> windingNumbers;
-    int KDTreeDisplayDepth = 0;
+    int kdTreeDisplayDepth = 0;
+    double lambda = 0.0;
 
 public :
 
@@ -91,9 +92,9 @@ public :
             point3d p1 = mesh.vertices[mesh.triangles[i][1]].p;
             point3d p2 = mesh.vertices[mesh.triangles[i][2]].p;
             Triplet t;
-            t.area = 1;
             t.p = p0/3+p1/3+p2/3;
             t.n = point3d::cross(p1-p0, p2-p0);
+            t.area = t.n.norm()/2.0;
             pointSet.push_back(t);
         }
     }
@@ -101,10 +102,14 @@ public :
     void mainFunction(){
 
         //computes points cloud
+        //createPointSet(mesh, pointSet);
+        /*std::vector< point3d > cloudPositions;
+        for (int i = 0 ; i<pointSet.size() ; i++){
+            cloudPositions.push_back(pointSet[i].p);
+        }*/
         std::vector< point3d > const cloudPositions = fromMeshToPointSet(mesh, pointSet);
         tetmesh.tetMesh;
         tetmesh.TetGenHandler::computeTetMeshFromCloud ( cloudPositions );
-        //createPointSet();
         std::cout << "PointSet created : " << pointSet.size() << " points" << std::endl;
 
         //tetraedralization
@@ -255,15 +260,15 @@ public :
         point3d const & p3 = tetmesh.vertex(tet.w());
         point3d const & center = (p0+p1+p2+p3)/4;
 
-        point3d p0b = p0 + 0.2*(center - p0);
-        point3d p1b = p1 + 0.2*(center - p1);
-        point3d p2b = p2 + 0.2*(center - p2);
-        point3d p3b = p3 + 0.2*(center - p3);
+        point3d p0b = p0 + lambda*(center - p0);
+        point3d p1b = p1 + lambda*(center - p1);
+        point3d p2b = p2 + lambda*(center - p2);
+        point3d p3b = p3 + lambda*(center - p3);
 
-        point3d const & n0 = point3d::cross( p1b-p0b , p2b-p0b ).direction();
-        point3d const & n1 = point3d::cross( p1b-p0b , p3b-p0b ).direction();
-        point3d const & n2 = point3d::cross( p2b-p1b , p3b-p1b ).direction();
-        point3d const & n3 = point3d::cross( p2b-p0b , p3b-p0b ).direction();
+        point3d const & n0 = -point3d::cross( p1b-p0b , p2b-p0b ).direction();
+        point3d const & n1 = -point3d::cross( p3b-p0b , p1b-p0b ).direction();
+        point3d const & n2 = -point3d::cross( p3b-p1b , p2b-p1b ).direction();
+        point3d const & n3 = -point3d::cross( p2b-p0b , p3b-p0b ).direction();
 
         glBegin(GL_TRIANGLES);
 
@@ -274,13 +279,13 @@ public :
 
         glNormal3f(n1[0],n1[1],n1[2]);
         glVertex3f(p0b[0],p0b[1],p0b[2]);
-        glVertex3f(p1b[0],p1b[1],p1b[2]);
         glVertex3f(p3b[0],p3b[1],p3b[2]);
+        glVertex3f(p1b[0],p1b[1],p1b[2]);
 
         glNormal3f(n2[0],n2[1],n2[2]);
         glVertex3f(p1b[0],p1b[1],p1b[2]);
-        glVertex3f(p2b[0],p2b[1],p2b[2]);
         glVertex3f(p3b[0],p3b[1],p3b[2]);
+        glVertex3f(p2b[0],p2b[1],p2b[2]);
 
         glNormal3f(n3[0],n3[1],n3[2]);
         glVertex3f(p0b[0],p0b[1],p0b[2]);
@@ -391,12 +396,22 @@ public :
             // show kdtree
             showKDTree = showKDTree ? false : true;
         }
+        //kdtree depth displayed
         else if ( event->key() == Qt::Key_Right){
-            KDTreeDisplayDepth++;
+            kdTreeDisplayDepth++;
         }
         else if ( event->key() == Qt::Key_Left){
-            KDTreeDisplayDepth--;
-            if (KDTreeDisplayDepth < 0) KDTreeDisplayDepth = 0;
+            kdTreeDisplayDepth--;
+            if (kdTreeDisplayDepth < 0) kdTreeDisplayDepth = 0;
+        }
+        //scaling of displayed tetra
+        else if ( event->key() == Qt::Key_Up){
+            lambda += 0.05;
+            if (lambda > 1) lambda = 1.0;
+        }
+        else if ( event->key() == Qt::Key_Down){
+            lambda -= 0.05;
+            if (lambda < 0) lambda = 0.0;
         }
     }
 
