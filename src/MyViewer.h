@@ -23,9 +23,8 @@
 #include <QFileDialog>
 #include <QKeyEvent>
 
-static bool showTetra = false;
 static bool showKDTree = false;
-static bool showWindingNumber = false;
+static int mode = 0;
 
 class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
 {
@@ -116,7 +115,7 @@ public :
         std::vector<int> iota(pointSet.size()) ;
         std::iota (std::begin(iota), std::end(iota), 0);
 
-        tree.root = tree.buildKDTree(iota, pointSet);
+        tree.node = tree.buildKDTree(iota, pointSet);
         std::cout << "Done: KDTree" << std::endl;
 
         //computes WN of tetra
@@ -129,7 +128,7 @@ public :
             point3d const & p1 = tetmesh.vertex(tet.y());
             point3d const & p2 = tetmesh.vertex(tet.z());
             point3d const & p3 = tetmesh.vertex(tet.w());
-            wn = tree.fastWN( (p0+p1+p2+p3)/4, iota2, pointSet);
+            wn = tree.fastWN( (p0+p1+p2+p3)/4, tree.node, pointSet);
             windingNumbers.push_back(wn);
         }
         std::cout << "Done: WindingNumbers of Tet" << std::endl;
@@ -138,42 +137,11 @@ public :
     //Draw
     void draw() {
         if (showKDTree) {
-            drawKDTree(tree.root);
+            std::cout << "show kdtree" << std::endl;
+            drawKDTree(tree.node);
         }
-        if (showWindingNumber) {
-            drawWindingNumberTetra();
-        }
-        if (showTetra) {
-            glColor3f(0.5,0.5,0.8);
-            glBegin(GL_LINES);
-            for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
-                point4ui tet = tetmesh.tetrahedron(t);
-                point3d const & p0 = tetmesh.vertex(tet.x());
-                point3d const & p1 = tetmesh.vertex(tet.y());
-                point3d const & p2 = tetmesh.vertex(tet.z());
-                point3d const & p3 = tetmesh.vertex(tet.w());
-
-                glVertex3f(p0[0],p0[1],p0[2]);
-                glVertex3f(p1[0],p1[1],p1[2]);
-
-                glVertex3f(p0[0],p0[1],p0[2]);
-                glVertex3f(p2[0],p2[1],p2[2]);
-
-                glVertex3f(p0[0],p0[1],p0[2]);
-                glVertex3f(p3[0],p3[1],p3[2]);
-
-                glVertex3f(p1[0],p1[1],p1[2]);
-                glVertex3f(p2[0],p2[1],p2[2]);
-
-                glVertex3f(p1[0],p1[1],p1[2]);
-                glVertex3f(p3[0],p3[1],p3[2]);
-
-                glVertex3f(p3[0],p3[1],p3[2]);
-                glVertex3f(p2[0],p2[1],p2[2]);
-            }
-            glEnd();
-        }
-        else {
+        switch(mode){
+        case 0:
             glEnable( GL_LIGHTING );
             glColor3f(0.5,0.5,0.8);
             glBegin(GL_TRIANGLES);
@@ -188,6 +156,18 @@ public :
                 glVertex3f(p2[0],p2[1],p2[2]);
             }
             glEnd();
+            break;
+        case 1:
+            glEnable( GL_LIGHTING );
+            glColor3f(0.5,0.5,0.8);
+            for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
+                point4ui const & tet = tetmesh.tetrahedron(t);
+                drawTetra(tet);
+            }
+            break;
+        case 2:
+            drawWindingNumberTetra();
+            break;
         }
     }
 
@@ -251,8 +231,7 @@ public :
     }
 
     void drawWindingNumberTetra() {
-
-        glBegin(GL_LINES);
+        unsigned int nNeg = 0;
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
             point4ui tet = tetmesh.tetrahedron(t);
             point3d const & p0 = tetmesh.vertex(tet.x());
@@ -261,25 +240,53 @@ public :
             point3d const & p3 = tetmesh.vertex(tet.w());
             double wn = windingNumbers[t];
             if (wn > 0.5) {
-                glVertex3f(p0[0],p0[1],p0[2]);
-                glVertex3f(p1[0],p1[1],p1[2]);
-
-                glVertex3f(p0[0],p0[1],p0[2]);
-                glVertex3f(p2[0],p2[1],p2[2]);
-
-                glVertex3f(p0[0],p0[1],p0[2]);
-                glVertex3f(p3[0],p3[1],p3[2]);
-
-                glVertex3f(p1[0],p1[1],p1[2]);
-                glVertex3f(p2[0],p2[1],p2[2]);
-
-                glVertex3f(p1[0],p1[1],p1[2]);
-                glVertex3f(p3[0],p3[1],p3[2]);
-
-                glVertex3f(p3[0],p3[1],p3[2]);
-                glVertex3f(p2[0],p2[1],p2[2]);
+                drawTetra(tet);
             }
+            else ++nNeg;
         }
+        //std::cout << nNeg << "  /  " << tetmesh.nTetrahedra() << std::endl;
+    }
+
+    void drawTetra(point4ui const & tet) {
+
+        point3d const & p0 = tetmesh.vertex(tet.x());
+        point3d const & p1 = tetmesh.vertex(tet.y());
+        point3d const & p2 = tetmesh.vertex(tet.z());
+        point3d const & p3 = tetmesh.vertex(tet.w());
+        point3d const & center = (p0+p1+p2+p3)/4;
+
+        point3d p0b = p0 + 0.2*(center - p0);
+        point3d p1b = p1 + 0.2*(center - p1);
+        point3d p2b = p2 + 0.2*(center - p2);
+        point3d p3b = p3 + 0.2*(center - p3);
+
+        point3d const & n0 = point3d::cross( p1b-p0b , p2b-p0b ).direction();
+        point3d const & n1 = point3d::cross( p1b-p0b , p3b-p0b ).direction();
+        point3d const & n2 = point3d::cross( p2b-p1b , p3b-p1b ).direction();
+        point3d const & n3 = point3d::cross( p2b-p0b , p3b-p0b ).direction();
+
+        glBegin(GL_TRIANGLES);
+
+        glNormal3f(n0[0],n0[1],n0[2]);
+        glVertex3f(p0b[0],p0b[1],p0b[2]);
+        glVertex3f(p1b[0],p1b[1],p1b[2]);
+        glVertex3f(p2b[0],p2b[1],p2b[2]);
+
+        glNormal3f(n1[0],n1[1],n1[2]);
+        glVertex3f(p0b[0],p0b[1],p0b[2]);
+        glVertex3f(p1b[0],p1b[1],p1b[2]);
+        glVertex3f(p3b[0],p3b[1],p3b[2]);
+
+        glNormal3f(n2[0],n2[1],n2[2]);
+        glVertex3f(p1b[0],p1b[1],p1b[2]);
+        glVertex3f(p2b[0],p2b[1],p2b[2]);
+        glVertex3f(p3b[0],p3b[1],p3b[2]);
+
+        glNormal3f(n3[0],n3[1],n3[2]);
+        glVertex3f(p0b[0],p0b[1],p0b[2]);
+        glVertex3f(p2b[0],p2b[1],p2b[2]);
+        glVertex3f(p3b[0],p3b[1],p3b[2]);
+
         glEnd();
     }
 
@@ -348,6 +355,10 @@ public :
         text += "<li>H   :   make this help appear</li>";
         text += "<li>O   :   open a mesh</li>";
         text += "<li>Ctrl + mouse right button double click   :   choose background color</li>";
+        text += "<li>I   :   initialize tetraedralizaton, kdtree & winding number</li>";
+        text += "<li>M   :   show mesh</li>";
+        text += "<li>T   :   show tetraedrons</li>";
+        text += "<li>W   :   show winding number choice</li>";
         text += "</ul>";
         return text;
     }
@@ -360,17 +371,25 @@ public :
             // exemple of use of keyboard
             open_mesh();
         }
-        else if( event->key() == Qt::Key_M ) {
+        else if( event->key() == Qt::Key_I ) {
+            // initialize
             mainFunction();
         }
-        else if( event->key() == Qt::Key_P ) {
-            showTetra = showTetra ? false : true ;
+        else if ( event->key() == Qt::Key_M ){
+            // show initial mesh
+            mode = 0;
         }
-        else if ( event->key() == Qt::Key_K ){
-            showKDTree = showKDTree ? false : true ;
+        else if( event->key() == Qt::Key_T ) {
+            // show tetraedralization
+            mode = 1;
         }
         else if ( event->key() == Qt::Key_W ){
-            showWindingNumber = showWindingNumber ? false : true ;
+            // show selected tetra with winding number
+            mode = 2;
+        }
+        else if ( event->key() == Qt::Key_K ){
+            // show kdtree
+            showKDTree = showKDTree ? false : true;
         }
         else if ( event->key() == Qt::Key_Right){
             KDTreeDisplayDepth++;
