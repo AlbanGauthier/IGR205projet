@@ -35,7 +35,7 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
     TetGenHandler tetmesh;
     std::vector<Triplet> pointSet;
     std::vector<double> windingNumbers;
-    int kdTreeDisplayDepth = 0;
+    double cutDepth = 0;
     double lambda = 0.0;
 
 public :
@@ -86,27 +86,9 @@ public :
     }
 
     //Initialization
-    void createPointSet(Mesh const & mesh, std::vector<Triplet> & pointSet){
-        for (unsigned int i = 0 ; i<mesh.triangles.size() ; i++){
-            point3d p0 = mesh.vertices[mesh.triangles[i][0]].p;
-            point3d p1 = mesh.vertices[mesh.triangles[i][1]].p;
-            point3d p2 = mesh.vertices[mesh.triangles[i][2]].p;
-            Triplet t;
-            t.p = p0/3+p1/3+p2/3;
-            t.n = point3d::cross(p1-p0, p2-p0);
-            t.area = t.n.norm()/2.0;
-            pointSet.push_back(t);
-        }
-    }
-
     void mainFunction(){
 
         //computes points cloud
-        //createPointSet(mesh, pointSet);
-        /*std::vector< point3d > cloudPositions;
-        for (int i = 0 ; i<pointSet.size() ; i++){
-            cloudPositions.push_back(pointSet[i].p);
-        }*/
         std::vector< point3d > const cloudPositions = fromMeshToPointSet(mesh, pointSet);
         tetmesh.tetMesh;
         tetmesh.TetGenHandler::computeTetMeshFromCloud ( cloudPositions );
@@ -173,6 +155,100 @@ public :
         case 2:
             drawWindingNumberTetra();
             break;
+        case 3:
+            std::cout << cutDepth << std::endl;
+            drawCutDisplay();
+            std::cout << "ok" << std::endl;
+            break;
+        }
+    }
+
+    void computeCutDepth(){
+        double closestPtDepth = 1, farestPtDepth = 0;
+        for (int i = 0 ; i<mesh.vertices.size() ; i++){
+            point3d pt = mesh.vertices[i].p;
+            qglviewer::Vec ptproj = camera()->projectedCoordinatesOf(qglviewer::Vec(pt[0],pt[1],pt[2]));
+            if (closestPtDepth > ptproj[2]){
+                closestPtDepth = ptproj[2];
+            }
+            else if (farestPtDepth < ptproj[2]){
+                farestPtDepth = ptproj[2];
+            }
+        }
+        cutDepth = (closestPtDepth+farestPtDepth)/2;
+    }
+
+    bool isInsideTetra(point3d const & pt, point4ui const & tet){
+        point3d const & p0 = tetmesh.vertex(tet.x());
+        point3d const & p1 = tetmesh.vertex(tet.y());
+        point3d const & p2 = tetmesh.vertex(tet.z());
+        point3d const & p3 = tetmesh.vertex(tet.w());
+
+        point3d normal0 = point3d::cross(p1-p0,p2-p0);
+        point3d normal1 = point3d::cross(p2-p0,p3-p0);
+        point3d normal2 = point3d::cross(p3-p0,p1-p0);
+        point3d normal3 = point3d::cross(p3-p1,p2-p1);
+        point3d vector0 = pt - p0;
+        point3d vector1 = pt - p1;
+
+        if (point3d::dot(normal0,vector0) >= 0 && point3d::dot(normal1,vector0) >= 0 && point3d::dot(normal2,vector0) >= 0 && point3d::dot(normal3,vector1) >= 0){
+            return true;
+        }
+
+        return false;
+    }
+
+    void drawCutDisplay(){
+        point3d axis(camera()->viewDirection());
+        int compteur = 0;
+        for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
+            double wn = windingNumbers[t];
+            if (wn > 0.5){
+                point4ui tet = tetmesh.tetrahedron(t);
+                point3d const & p0 = tetmesh.vertex(tet.x());
+                point3d const & p1 = tetmesh.vertex(tet.y());
+                point3d const & p2 = tetmesh.vertex(tet.z());
+                point3d const & p3 = tetmesh.vertex(tet.w());
+                qglviewer::Vec p0proj = camera()->projectedCoordinatesOf(qglviewer::Vec(p0[0],p0[1],p0[2]));
+                qglviewer::Vec p1proj = camera()->projectedCoordinatesOf(qglviewer::Vec(p1[0],p1[1],p1[2]));
+                qglviewer::Vec p2proj = camera()->projectedCoordinatesOf(qglviewer::Vec(p2[0],p2[1],p2[2]));
+                qglviewer::Vec p3proj = camera()->projectedCoordinatesOf(qglviewer::Vec(p3[0],p3[1],p3[2]));
+                double tetMinProj = p0proj[2];
+                double tetMaxProj = p0proj[2];
+                if (p1proj[2] < tetMinProj){
+                    tetMinProj = p1proj[2];
+                }
+                else if (p1proj[2] > tetMaxProj){
+                    tetMaxProj = p1proj[2];
+                }
+                if (p2proj[2] < tetMinProj){
+                    tetMinProj = p2proj[2];
+                }
+                else if (p2proj[2] > tetMaxProj){
+                    tetMaxProj = p2proj[2];
+                }
+                if (p3proj[2] < tetMinProj){
+                    tetMinProj = p3proj[2];
+                }
+                else if (p3proj[2] > tetMaxProj){
+                    tetMaxProj = p3proj[2];
+                }
+
+                //if plane and tetrahedron intersect
+                if (tetMinProj<cutDepth && tetMaxProj>cutDepth) {
+                    for (int x = 0 ; x<camera()->screenWidth() ; x++){
+                        for (int y = 0 ; y<camera()->screenHeight() ; y++){
+                            point3d pt = camera()->unprojectedCoordinatesOf(qglviewer::Vec(x, y, cutDepth));
+                            if (isInsideTetra(pt, tet)){
+                                glBegin(GL_POINTS);
+                                glColor3f(255,0,0);
+                                glVertex3f(pt[0],pt[1],pt[2]);
+                                glEnd();
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -244,12 +320,13 @@ public :
             point3d const & p2 = tetmesh.vertex(tet.z());
             point3d const & p3 = tetmesh.vertex(tet.w());
             double wn = windingNumbers[t];
+            std::cout << wn << std::endl;
             if (wn > 0.5) {
                 drawTetra(tet);
             }
             else ++nNeg;
         }
-        //std::cout << nNeg << "  /  " << tetmesh.nTetrahedra() << std::endl;
+        std::cout << nNeg << "  /  " << tetmesh.nTetrahedra() << std::endl;
     }
 
     void drawTetra(point4ui const & tet) {
@@ -295,6 +372,41 @@ public :
         glEnd();
     }
 
+    void glSphere(float x, float y, float z, float radius){
+        int N = 40;
+        glBegin(GL_TRIANGLES);
+        //glColor3f(255, 0, 0);
+        for (int j = -N/2 ; j<N/2 ; j++){
+            for (int i = 0 ; i<N ; i++){
+                float x1 = radius*cos(2*M_PI*i/N)*cos(2*M_PI*j/N);
+                float z1 = radius*sin(2*M_PI*i/N)*cos(2*M_PI*j/N);
+                float y1 = radius*sin(2*M_PI*j/N);
+                float x2 = radius*cos(2*M_PI*(i+1)/N)*cos(2*M_PI*j/N);
+                float z2 = radius*sin(2*M_PI*(i+1)/N)*cos(2*M_PI*j/N);
+                float y2 = radius*sin(2*M_PI*j/N);
+                float x3 = radius*cos(2*M_PI*i/N)*cos(2*M_PI*(j+1)/N);
+                float z3 = radius*sin(2*M_PI*i/N)*cos(2*M_PI*(j+1)/N);
+                float y3 = radius*sin(2*M_PI*(j+1)/N);
+                float x4 = radius*cos(2*M_PI*(i+1)/N)*cos(2*M_PI*(j+1)/N);
+                float z4 = radius*sin(2*M_PI*(i+1)/N)*cos(2*M_PI*(j+1)/N);
+                float y4 = radius*sin(2*M_PI*(j+1)/N);
+                //glColor3f(x1, y1, z1);
+                glVertex3f(x1+x, y1+y, z1+z);
+                //glColor3f(x2, y2, z2);
+                glVertex3f(x2+x, y2+y, z2+z);
+                //glColor3f(x4, y4, z4);
+                glVertex3f(x4+x, y4+y, z4+z);
+
+                //glColor3f(x1, y1, z1);
+                glVertex3f(x1+x, y1+y, z1+z);
+                //glColor3f(x4, y4, z4);
+                glVertex3f(x4+x, y4+y, z4+z);
+                //glColor3f(x3, y3, z3);
+                glVertex3f(x3+x, y3+y, z3+z);
+            }
+        }
+        glEnd();
+    }
 
     void pickBackgroundColor() {
         QColor _bc = QColorDialog::getColor( this->backgroundColor(), this);
@@ -383,14 +495,23 @@ public :
         else if ( event->key() == Qt::Key_M ){
             // show initial mesh
             mode = 0;
+            update();
         }
         else if( event->key() == Qt::Key_T ) {
             // show tetraedralization
             mode = 1;
+            update();
         }
         else if ( event->key() == Qt::Key_W ){
             // show selected tetra with winding number
             mode = 2;
+            update();
+        }
+        else if ( event->key() == Qt::Key_C ){
+            // show cut display
+            mode = 3;
+            computeCutDepth();
+            update();
         }
         else if ( event->key() == Qt::Key_K ){
             // show kdtree
@@ -398,11 +519,14 @@ public :
         }
         //kdtree depth displayed
         else if ( event->key() == Qt::Key_Right){
-            kdTreeDisplayDepth++;
+            cutDepth += 0.0001;
+            if (cutDepth > 1) cutDepth = 1;
+            update();
         }
         else if ( event->key() == Qt::Key_Left){
-            kdTreeDisplayDepth--;
-            if (kdTreeDisplayDepth < 0) kdTreeDisplayDepth = 0;
+            cutDepth -= 0.0001;
+            if (cutDepth < 0) cutDepth = 0;
+            update();
         }
         //scaling of displayed tetra
         else if ( event->key() == Qt::Key_Up){

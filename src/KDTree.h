@@ -20,6 +20,7 @@ struct KDNode{
 struct KDTree {
 
     KDNode node;
+    double beta = 2.3; // accuracy : the article cites 2 for triangles, 2.3 for points
 
     BBox computeBoundingBox(std::vector<int> indices, std::vector<Triplet> & pointSet){
         BBox B;
@@ -178,7 +179,6 @@ struct KDTree {
     double fastWN(point3d const & q, KDNode const & node, std::vector<Triplet> const & pointSet) {
 
         //initialization
-        double beta = 2.3; // accuracy : the article cites 2 for triangles, 2.3 for points
         point3d treeP = node.meanP; // = ptilde
         double treeR = 0;
         point3d nTilde = node.meanN;
@@ -192,7 +192,8 @@ struct KDTree {
         if ((q - treeP).norm() > beta * treeR) {
             double dist = (treeP - q).norm();
             return point3d::dot(treeP - q,nTilde)/(4*M_PI*dist*dist*dist); // = wtilde
-        } else {
+        }
+        else {
             double val = 0;
             if (node.leftChild == nullptr && node.rightChild == nullptr) {
                 for (unsigned int j = 0 ; j<node.data.size() ; j++) {
@@ -201,7 +202,8 @@ struct KDTree {
                     double dist = (p - q).norm();
                     val += point3d::dot(p - q,n)/(4*M_PI*dist*dist*dist);
                 }
-            } else {
+            }
+            else {
                 val += fastWN(q, *node.leftChild, pointSet);
                 val += fastWN(q, *node.rightChild, pointSet);
             }
