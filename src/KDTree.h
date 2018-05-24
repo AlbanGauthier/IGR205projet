@@ -13,6 +13,7 @@ struct KDNode{
     BBox bbox;
     std::vector<int> data;
     point3d meanP, meanN;
+    double area;
     KDNode *leftChild;
     KDNode *rightChild;
 };
@@ -117,9 +118,9 @@ struct KDTree {
             unsigned int v = sortedIndices[i];
             double area = pointSet[v].area;
             meanN += area * pointSet[v].n;
-            areaSum += area;
+            //areaSum += area;
         }
-        meanN /= areaSum;
+        //meanN /= areaSum;
         return meanN;
     }
 
@@ -139,6 +140,7 @@ struct KDTree {
             n.data = indices;
             n.meanP = pointSet[indices[0]].p;
             n.meanN = pointSet[indices[0]].n;
+            n.area = pointSet[indices[0]].area;
             n.leftChild = nullptr;
             n.rightChild = nullptr;
             return n;
@@ -171,6 +173,7 @@ struct KDTree {
         n.data = indices;
         n.meanP = mp;
         n.meanN = mn;
+        n.area = left.area + right.area;
         n.leftChild = leftC;
         n.rightChild = rightC;
         return n;
@@ -189,7 +192,7 @@ struct KDTree {
             if (temp > treeR) treeR = temp;
         }
 
-        if ((q - treeP).norm() > beta * treeR) {
+        if ((q - treeP).norm() > beta * treeR && treeR != 0) {
             double dist = (treeP - q).norm();
             return point3d::dot(treeP - q,nTilde)/(4*M_PI*dist*dist*dist); // = wtilde
         }
@@ -200,7 +203,7 @@ struct KDTree {
                     point3d p = pointSet[node.data[j]].p;
                     point3d n = pointSet[node.data[j]].n;
                     double dist = (p - q).norm();
-                    val += point3d::dot(p - q,n)/(4*M_PI*dist*dist*dist);
+                    val += pointSet[node.data[j]].area*point3d::dot(p - q,n)/(4*M_PI*dist*dist*dist);
                 }
             }
             else {
