@@ -7,6 +7,9 @@
 
 struct BBox{
     double xMin, xMax, yMin, yMax, zMin, zMax;
+    double radius() const {
+        return sqrt( (xMax - xMin)*(xMax - xMin) + (yMax - yMin)*(yMax - yMin) + (zMax - zMin)*(zMax - zMin) ) / 2;
+    }
 };
 
 struct KDNode{
@@ -183,14 +186,15 @@ struct KDTree {
 
         //initialization
         point3d treeP = node.meanP; // = ptilde
-        double treeR = 0;
+        double treeR = node.bbox.radius();
         point3d nTilde = node.meanN;
 
         //computes treeR, maximum distance from tree.p to any of its elements
-        for(unsigned i = 0; i<node.data.size(); i++) {
+    /*    for(unsigned i = 0; i<node.data.size(); i++) {
             double temp = (treeP-pointSet[node.data[i]].p).norm();
             if (temp > treeR) treeR = temp;
         }
+        */
 
         if ((q - treeP).norm() > beta * treeR && treeR != 0) {
             double dist = (treeP - q).norm();

@@ -38,6 +38,9 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
     double cutDepth = 0;
     double lambda = 0.0;
 
+
+    point3d bb, BB;
+
 public :
 
     MyViewer(QGLWidget * parent = NULL) : QGLViewer(parent) , QOpenGLFunctions_3_0() {
@@ -117,6 +120,8 @@ public :
             point3d const & p3 = tetmesh.vertex(tet.w());
             wn = tree.fastWN( (p0+p1+p2+p3)/4, tree.node, pointSet);
             windingNumbers.push_back(wn);
+            if( t % 1000 == 0 )
+                std::cout << "\tDone: WindingNumbers of " << t << " Tets" << std::endl;
         }
         std::cout << "Done: WindingNumbers of Tet" << std::endl;
     }
@@ -200,6 +205,10 @@ public :
 
     void drawCutDisplay(){
         point3d axis(camera()->viewDirection());
+        point3d center(sceneCenter());
+        double radius = sceneRadius();
+        double centerAlongAxis = point3d::dot(axis ,center);
+        double alongAxisCut = centerAlongAxis - radius + cutDepth * 2 * radius;
         int compteur = 0;
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
             double wn = windingNumbers[t];
@@ -209,6 +218,7 @@ public :
                 point3d const & p1 = tetmesh.vertex(tet.y());
                 point3d const & p2 = tetmesh.vertex(tet.z());
                 point3d const & p3 = tetmesh.vertex(tet.w());
+                /*
                 qglviewer::Vec p0proj = camera()->projectedCoordinatesOf(qglviewer::Vec(p0[0],p0[1],p0[2]));
                 qglviewer::Vec p1proj = camera()->projectedCoordinatesOf(qglviewer::Vec(p1[0],p1[1],p1[2]));
                 qglviewer::Vec p2proj = camera()->projectedCoordinatesOf(qglviewer::Vec(p2[0],p2[1],p2[2]));
@@ -233,9 +243,12 @@ public :
                 else if (p3proj[2] > tetMaxProj){
                     tetMaxProj = p3proj[2];
                 }
+                */
+
+                point3d tetcenter = (p0 + p1 + p2 + p3) / 4;
 
                 //if plane and tetrahedron intersect
-                if (tetMinProj<cutDepth && tetMaxProj>cutDepth) {
+                if (alongAxisCut <= point3d::dot(axis ,tetcenter)) {
                     for (int x = 0 ; x<camera()->screenWidth() ; x++){
                         for (int y = 0 ; y<camera()->screenHeight() ; y++){
                             point3d pt = camera()->unprojectedCoordinatesOf(qglviewer::Vec(x, y, cutDepth));
@@ -313,6 +326,11 @@ public :
 
     void drawWindingNumberTetra() {
         unsigned int nNeg = 0;
+        point3d axis(camera()->viewDirection());
+        point3d center(sceneCenter());
+        double radius = sceneRadius();
+        double centerAlongAxis = point3d::dot(axis ,center);
+        double alongAxisCut = centerAlongAxis - radius + cutDepth * 2 * radius;
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
             point4ui tet = tetmesh.tetrahedron(t);
             point3d const & p0 = tetmesh.vertex(tet.x());
@@ -320,9 +338,13 @@ public :
             point3d const & p2 = tetmesh.vertex(tet.z());
             point3d const & p3 = tetmesh.vertex(tet.w());
             double wn = windingNumbers[t];
-            std::cout << wn << std::endl;
+          //std::cout << wn << std::endl;
             if (wn > 0.5) {
-                drawTetra(tet);
+                point3d tetcenter = (p0 + p1 + p2 + p3) / 4;
+
+                //if plane and tetrahedron intersect
+                if (alongAxisCut <= point3d::dot(axis ,tetcenter))
+                    drawTetra(tet);
             }
             else ++nNeg;
         }
@@ -419,7 +441,7 @@ public :
     void adjustCamera( point3d const & bb , point3d const & BB ) {
         point3d const & center = ( bb + BB )/2.f;
         setSceneCenter( qglviewer::Vec( center[0] , center[1] , center[2] ) );
-        setSceneRadius( 1.5f * ( BB - bb ).norm() );
+        setSceneRadius( 0.7f * ( BB - bb ).norm() );
         showEntireScene();
     }
 
@@ -519,12 +541,12 @@ public :
         }
         //kdtree depth displayed
         else if ( event->key() == Qt::Key_Right){
-            cutDepth += 0.0001;
+            cutDepth += 0.001;
             if (cutDepth > 1) cutDepth = 1;
             update();
         }
         else if ( event->key() == Qt::Key_Left){
-            cutDepth -= 0.0001;
+            cutDepth -= 0.001;
             if (cutDepth < 0) cutDepth = 0;
             update();
         }
@@ -532,10 +554,12 @@ public :
         else if ( event->key() == Qt::Key_Up){
             lambda += 0.05;
             if (lambda > 1) lambda = 1.0;
+            update();
         }
         else if ( event->key() == Qt::Key_Down){
             lambda -= 0.05;
             if (lambda < 0) lambda = 0.0;
+            update();
         }
     }
 
@@ -578,7 +602,7 @@ public slots:
                 success = OBJIO::openTriMesh(fileName.toStdString() , mesh.vertices , mesh.triangles );
 
             if(success) {
-                point3d bb(FLT_MAX,FLT_MAX,FLT_MAX) , BB(FLT_MIN,FLT_MIN,FLT_MIN);
+                bb = point3d(FLT_MAX,FLT_MAX,FLT_MAX) ; BB = point3d(FLT_MIN,FLT_MIN,FLT_MIN);
                 for(unsigned int v = 0 ; v < mesh.vertices.size() ; ++v) {
                     bb = point3d::min(bb , mesh.vertices[v].p);
                     BB = point3d::max(BB , mesh.vertices[v].p);
