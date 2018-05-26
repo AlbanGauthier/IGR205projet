@@ -118,10 +118,25 @@ public :
             point3d const & p1 = tetmesh.vertex(tet.y());
             point3d const & p2 = tetmesh.vertex(tet.z());
             point3d const & p3 = tetmesh.vertex(tet.w());
+
+            point3d p4 = p0/3 + (p1+p2+p3)/6;
+            point3d p5 = p1/3 + (p1+p2+p0)/6;
+            point3d p6 = p2/3 + (p1+p0+p3)/6;
+            point3d p7 = p3/3 + (p0+p2+p3)/6;
+
             wn = tree.fastWN( (p0+p1+p2+p3)/4, tree.node, pointSet);
+
+            /*
+            wn += tree.fastWN( p4, tree.node, pointSet);
+            wn += tree.fastWN( p5, tree.node, pointSet);
+            wn += tree.fastWN( p6, tree.node, pointSet);
+            wn += tree.fastWN( p7, tree.node, pointSet);
+            wn /= 4;*/
+            std::cout << wn << std::endl;
+
             windingNumbers.push_back(wn);
-            if( t % 1000 == 0 )
-                std::cout << "\tDone: WindingNumbers of " << t << " Tets" << std::endl;
+            /*if( t % 1000 == 0 )
+                std::cout << "\tDone: WindingNumbers of " << t << " Tets" << std::endl;*/
         }
         std::cout << "Done: WindingNumbers of Tet" << std::endl;
     }
@@ -218,33 +233,6 @@ public :
                 point3d const & p1 = tetmesh.vertex(tet.y());
                 point3d const & p2 = tetmesh.vertex(tet.z());
                 point3d const & p3 = tetmesh.vertex(tet.w());
-                /*
-                qglviewer::Vec p0proj = camera()->projectedCoordinatesOf(qglviewer::Vec(p0[0],p0[1],p0[2]));
-                qglviewer::Vec p1proj = camera()->projectedCoordinatesOf(qglviewer::Vec(p1[0],p1[1],p1[2]));
-                qglviewer::Vec p2proj = camera()->projectedCoordinatesOf(qglviewer::Vec(p2[0],p2[1],p2[2]));
-                qglviewer::Vec p3proj = camera()->projectedCoordinatesOf(qglviewer::Vec(p3[0],p3[1],p3[2]));
-                double tetMinProj = p0proj[2];
-                double tetMaxProj = p0proj[2];
-                if (p1proj[2] < tetMinProj){
-                    tetMinProj = p1proj[2];
-                }
-                else if (p1proj[2] > tetMaxProj){
-                    tetMaxProj = p1proj[2];
-                }
-                if (p2proj[2] < tetMinProj){
-                    tetMinProj = p2proj[2];
-                }
-                else if (p2proj[2] > tetMaxProj){
-                    tetMaxProj = p2proj[2];
-                }
-                if (p3proj[2] < tetMinProj){
-                    tetMinProj = p3proj[2];
-                }
-                else if (p3proj[2] > tetMaxProj){
-                    tetMaxProj = p3proj[2];
-                }
-                */
-
                 point3d tetcenter = (p0 + p1 + p2 + p3) / 4;
 
                 //if plane and tetrahedron intersect
@@ -340,6 +328,7 @@ public :
             double wn = windingNumbers[t];
           //std::cout << wn << std::endl;
             if (wn > 0.5) {
+
                 point3d tetcenter = (p0 + p1 + p2 + p3) / 4;
 
                 //if plane and tetrahedron intersect

@@ -67,7 +67,7 @@ struct KDTree {
         for (int i = 0 ; i<n ; i++){
             int minIndex = 0;
             int minCoord = pointSet[tempIndices[0]].p[axis];
-            for (int j = 1 ; j<tempIndices.size() ; j++){
+            for (unsigned int j = 1 ; j<tempIndices.size() ; j++){
                 if (pointSet[tempIndices[j]].p[axis] < minCoord){
                     minIndex = j;
                     minCoord = pointSet[tempIndices[j]].p[axis];
