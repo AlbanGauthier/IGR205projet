@@ -8,6 +8,9 @@
 //KDTree
 #include "KDTree.h"
 
+//Graphcut
+#include <graph.h>
+
 // Parsing:
 #include "BasicIO.h"
 
@@ -108,6 +111,9 @@ public :
         tree.node = tree.buildKDTree(iota, pointSet);
         std::cout << "Done: KDTree" << std::endl;
 
+        //test
+        test_graph_cut();
+
         //computes WN of tetra
         std::vector<int> iota2(pointSet.size()) ;
         std::iota (std::begin(iota2), std::end(iota2), 0);
@@ -119,20 +125,20 @@ public :
             point3d const & p2 = tetmesh.vertex(tet.z());
             point3d const & p3 = tetmesh.vertex(tet.w());
 
-            point3d p4 = p0/3 + (p1+p2+p3)/6;
-            point3d p5 = p1/3 + (p1+p2+p0)/6;
-            point3d p6 = p2/3 + (p1+p0+p3)/6;
-            point3d p7 = p3/3 + (p0+p2+p3)/6;
+            point3d const & p4 = (p0/2) + (p1+p2+p3)/6;
+            point3d const & p5 = (p1/2) + (p0+p2+p3)/6;
+            point3d const & p6 = (p2/2) + (p0+p1+p3)/6;
+            point3d const & p7 = (p3/2) + (p0+p1+p2)/6;
 
-            wn = tree.fastWN( (p0+p1+p2+p3)/4, tree.node, pointSet);
+            //wn = tree.fastWN( (p0+p1+p2+p3)/4, tree.node, pointSet);
 
-            /*
             wn += tree.fastWN( p4, tree.node, pointSet);
             wn += tree.fastWN( p5, tree.node, pointSet);
             wn += tree.fastWN( p6, tree.node, pointSet);
             wn += tree.fastWN( p7, tree.node, pointSet);
-            wn /= 4;*/
-            std::cout << wn << std::endl;
+            wn /= 4;
+
+            //std::cout << wn << std::endl;
 
             windingNumbers.push_back(wn);
             /*if( t % 1000 == 0 )
@@ -328,7 +334,6 @@ public :
             double wn = windingNumbers[t];
           //std::cout << wn << std::endl;
             if (wn > 0.5) {
-
                 point3d tetcenter = (p0 + p1 + p2 + p3) / 4;
 
                 //if plane and tetrahedron intersect
@@ -417,6 +422,47 @@ public :
             }
         }
         glEnd();
+    }
+
+    void test_graph_cut() {
+        {
+            typedef GraphCut_BK::Graph<int,int,int> MonTypeDeGraphePourGraphCut;
+            MonTypeDeGraphePourGraphCut *g = new MonTypeDeGraphePourGraphCut(/*estimated # of nodes*/ 2, /*estimated # of edges*/ 1);
+
+            g -> add_node();
+            g -> add_node();
+
+            g -> add_tweights( 0,   /* capacities */  5, 1 );
+            g -> add_tweights( 1,   /* capacities */  2, 6 );
+            g -> add_edge( 0, 1,    /* capacities */  3, 4 );
+
+            int flow = g -> maxflow();
+
+            printf("Flow = %d\n", flow);
+            printf("Minimum cut:\n");
+            if (g->what_segment(0) == MonTypeDeGraphePourGraphCut::SOURCE)
+                printf("node0 is in the SOURCE set\n");
+            else
+                printf("node0 is in the SINK set\n");
+            if (g->what_segment(1) == MonTypeDeGraphePourGraphCut::SOURCE)
+                printf("node1 is in the SOURCE set\n");
+            else
+                printf("node1 is in the SINK set\n");
+
+            delete g;
+        }
+    }
+
+    void graph_cut(){
+
+        typedef GraphCut_BK::Graph<int,int,int> MonTypeDeGraphePourGraphCut;
+        MonTypeDeGraphePourGraphCut *g = new MonTypeDeGraphePourGraphCut(/*estimated # of nodes*/ tetmesh.nTetrahedra(), /*estimated # of edges*/ tetmesh.nTetrahedra());
+
+        // source & sink : 0,1
+        g -> add_node();
+        g -> add_node();
+
+
     }
 
     void pickBackgroundColor() {
