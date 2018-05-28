@@ -44,6 +44,7 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
     TetGenHandler tetmesh;
     std::vector<Triplet> pointSet;
     std::vector<double> windingNumbers;
+    std::vector<double> wnGraphcut;
     std::vector<Tet> tetList;
     double cutDepth = 0;
     double lambda = 0.0;
@@ -225,9 +226,8 @@ public :
             drawWindingNumberTetra();
             break;
         case 3:
-            std::cout << cutDepth << std::endl;
-            drawCutDisplay();
-            std::cout << "ok" << std::endl;
+            std::cout << "graph cut display" << std::endl;
+            drawGraphCutDisplay();
             break;
         }
     }
@@ -388,6 +388,33 @@ public :
         std::cout << nNeg << "  /  " << tetmesh.nTetrahedra() << std::endl;
     }
 
+    void drawGraphCutDisplay() {
+        unsigned int nNeg = 0;
+        point3d axis(camera()->viewDirection());
+        point3d center(sceneCenter());
+        double radius = sceneRadius();
+        double centerAlongAxis = point3d::dot(axis ,center);
+        double alongAxisCut = centerAlongAxis - radius + cutDepth * 2 * radius;
+        for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
+            point4ui tet = tetmesh.tetrahedron(t);
+            point3d const & p0 = tetmesh.vertex(tet.x());
+            point3d const & p1 = tetmesh.vertex(tet.y());
+            point3d const & p2 = tetmesh.vertex(tet.z());
+            point3d const & p3 = tetmesh.vertex(tet.w());
+            double wn = wnGraphcut[t];
+          //std::cout << wn << std::endl;
+            if (wn > 0.5) {
+                point3d tetcenter = (p0 + p1 + p2 + p3) / 4;
+
+                //if plane and tetrahedron intersect
+                if (alongAxisCut <= point3d::dot(axis ,tetcenter))
+                    drawTetra(tet);
+            }
+            else ++nNeg;
+        }
+        std::cout << nNeg << "  /  " << tetmesh.nTetrahedra() << std::endl;
+    }
+
     void drawTetra(point4ui const & tet) {
 
         point3d const & p0 = tetmesh.vertex(tet.x());
@@ -498,7 +525,7 @@ public :
 
     void graph_cut(double sigma = 1){
 
-        typedef GraphCut_BK::Graph<int,int,int> MonTypeDeGraphePourGraphCut;
+        typedef GraphCut_BK::Graph<int,int,double> MonTypeDeGraphePourGraphCut;
         MonTypeDeGraphePourGraphCut *g = new MonTypeDeGraphePourGraphCut(/*estimated # of nodes*/ tetmesh.nTetrahedra(), /*estimated # of edges*/ tetmesh.nTetrahedra());
 
         //QUESTION HERE :not sure if vect<map> or vect<vect> is better
@@ -528,6 +555,12 @@ public :
         }
 
         double flow = g -> maxflow();
+
+        wnGraphcut.clear();
+        for( unsigned int i = 0 ; i < tetList.size() ; i++ ) {
+            if (Graph::what_segment(i) == MonTypeDeGraphePourGraphCut::SOURCE) wnGraphcut.push_back(1);
+            else wnGraphcut.push_back(0);
+        }
     }
 
     void pickBackgroundColor() {
@@ -629,17 +662,26 @@ public :
             mode = 2;
             update();
         }
-        else if ( event->key() == Qt::Key_C ){
-            // show cut display
-            mode = 3;
-            computeCutDepth();
-            update();
+        else if ( event->key() == Qt::Key_G ){
+            // computes graphcut
+            graph_cut();
         }
         else if ( event->key() == Qt::Key_K ){
             // show kdtree
             showKDTree = showKDTree ? false : true;
         }
-        //kdtree depth displayed
+        else if ( event->key() == Qt::Key_C ){
+            // show graph cut minimization
+            mode = 3;
+            update();
+        }
+        /*
+        else if ( event->key() == Qt::Key_C ){
+            // show cut display
+            mode = 3;
+            computeCutDepth();
+            update();
+        }*/
         else if ( event->key() == Qt::Key_Right){
             cutDepth += 0.001;
             if (cutDepth > 1) cutDepth = 1;
