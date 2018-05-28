@@ -10,6 +10,7 @@
 
 //Graphcut
 #include <graph.h>
+#include <set>
 
 // Parsing:
 #include "BasicIO.h"
@@ -29,6 +30,11 @@
 static bool showKDTree = false;
 static int mode = 0;
 
+struct Tet {
+    int index;
+    std::set<int> tetNeighbors;
+};
+
 class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
 {
     Q_OBJECT
@@ -38,6 +44,7 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
     TetGenHandler tetmesh;
     std::vector<Triplet> pointSet;
     std::vector<double> windingNumbers;
+    std::vector<Tet> tetList;
     double cutDepth = 0;
     double lambda = 0.0;
 
@@ -117,7 +124,9 @@ public :
         //computes WN of tetra
         std::vector<int> iota2(pointSet.size()) ;
         std::iota (std::begin(iota2), std::end(iota2), 0);
-        double wn = 0;
+        double wn = 0, wn1=0, wn2=0, wn3=0, wn4=0;
+        double wn_old = 0;
+        double tmp = 0;
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
             point4ui tet = tetmesh.tetrahedron(t);
             point3d const & p0 = tetmesh.vertex(tet.x());
@@ -130,21 +139,55 @@ public :
             point3d const & p6 = (p2/2) + (p0+p1+p3)/6;
             point3d const & p7 = (p3/2) + (p0+p1+p2)/6;
 
-            //wn = tree.fastWN( (p0+p1+p2+p3)/4, tree.node, pointSet);
+            point3d barycenter = (p0+p1+p2+p3)/4;
+            point3d rand_p = point3d(0,0,0);
 
-            wn += tree.fastWN( p4, tree.node, pointSet);
-            wn += tree.fastWN( p5, tree.node, pointSet);
-            wn += tree.fastWN( p6, tree.node, pointSet);
-            wn += tree.fastWN( p7, tree.node, pointSet);
-            wn /= 4;
+            //only one evaluation in the middle
+            //wn_old = tree.fastWN( barycenter, tree.node, pointSet);
 
-            //std::cout << wn << std::endl;
+            //4 evaluations inside de tetrahedron
+            wn1 = tree.fastWN( p4, tree.node, pointSet);
+            wn2 = tree.fastWN( p5, tree.node, pointSet);
+            wn3 = tree.fastWN( p6, tree.node, pointSet);
+            wn4 = tree.fastWN( p7, tree.node, pointSet);
+            wn = (wn1+wn2+wn3+wn4)/4;
+
+            /* //randomly select points in the tetrahedron, near to the center
+            for( unsigned int i = 0 ; i < 10 ; i++ ) {
+                tmp = 0;
+                rand_p = pick(p0,p1,p2,p3);
+                tmp = tree.fastWN( 0.1*(barycenter - rand_p) + barycenter , tree.node, pointSet);
+                wn += tmp;
+            }
+            wn /= 10;
+            */
 
             windingNumbers.push_back(wn);
-            /*if( t % 1000 == 0 )
-                std::cout << "\tDone: WindingNumbers of " << t << " Tets" << std::endl;*/
         }
         std::cout << "Done: WindingNumbers of Tet" << std::endl;
+    }
+
+    //source: Generating Random Points in a Tetrahedron, Visual Computing Lab of CNR-ISTI
+    //http://vcg.isti.cnr.it/jgt/tetra.htm
+    point3d pick(point3d const & v0, point3d const & v1, point3d const & v2, point3d const & v3) {
+        double s = (double) std::rand()/(RAND_MAX);
+        double t = (double) std::rand()/(RAND_MAX);
+        double u = (double) std::rand()/(RAND_MAX);
+        if(s+t>1.0) { // cut'n fold the cube into a prism
+            s = 1.0 - s;
+            t = 1.0 - t;
+        }
+        if(t+u>1.0) { // cut'n fold the prism into a tetrahedron
+            double tmp = u;
+            u = 1.0 - s - t;
+            t = 1.0 - tmp;
+        } else if(s+t+u>1.0) {
+            double tmp = u;
+            u = s + t + u - 1.0;
+            s = 1 - t - tmp;
+        }
+        double a=1-s-t-u; // a,s,t,u are the barycentric coordinates of the random point.
+        return v0*a + v1*s + v2*t + v3*u;
     }
 
     //Draw
@@ -453,16 +496,38 @@ public :
         }
     }
 
-    void graph_cut(){
+    void graph_cut(double sigma = 1){
 
         typedef GraphCut_BK::Graph<int,int,int> MonTypeDeGraphePourGraphCut;
         MonTypeDeGraphePourGraphCut *g = new MonTypeDeGraphePourGraphCut(/*estimated # of nodes*/ tetmesh.nTetrahedra(), /*estimated # of edges*/ tetmesh.nTetrahedra());
 
-        // source & sink : 0,1
-        g -> add_node();
-        g -> add_node();
+        //QUESTION HERE :not sure if vect<map> or vect<vect> is better
+        std::vector<bool> allFalse(4, false);
+        std::vector<std::vector<bool>> hasEdge(tetmesh.nTetrahedra(), allFalse);
 
+        double wn = 0;
 
+        //each tetrahedron has a node
+        for( unsigned int i = 0 ; i < tetmesh.nTetrahedra() ; i++ ) {
+            g -> add_node();
+            wn = windingNumbers[i];
+            g -> add_tweights( i,   /* capacities */  std::max(1 - wn,(double)0), std::max(wn - 0,(double)0) );
+        }
+
+        for( unsigned int i = 0 ; i < tetList.size() ; i++ ) {
+            wn = windingNumbers[tetList[i].index];
+            for( auto j : tetList[i].tetNeighbors) {
+                if (!hasEdge[i][j] && !hasEdge[j][i]) {
+                    double tmp = windingNumbers[j];
+                    double weight = exp(-(tmp-wn)*(tmp-wn)/(2*sigma*sigma)); //lacks aij
+                    g -> add_edge( i, j,    /* capacities */  weight, weight );
+                    hasEdge[i][j] = true;
+                    hasEdge[j][i] = true;
+                }
+            }
+        }
+
+        double flow = g -> maxflow();
     }
 
     void pickBackgroundColor() {
