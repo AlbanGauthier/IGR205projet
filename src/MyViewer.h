@@ -119,15 +119,14 @@ public :
         tree.node = tree.buildKDTree(iota, pointSet);
         std::cout << "Done: KDTree" << std::endl;
 
-        //test
-        test_graph_cut();
-
         //computes WN of tetra
         std::vector<int> iota2(pointSet.size()) ;
         std::iota (std::begin(iota2), std::end(iota2), 0);
         double wn = 0, wn1=0, wn2=0, wn3=0, wn4=0;
         double wn_old = 0;
         double tmp = 0;
+
+        windingNumbers.resize(tetmesh.nTetrahedra());
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
             point4ui tet = tetmesh.tetrahedron(t);
             point3d const & p0 = tetmesh.vertex(tet.x());
@@ -140,8 +139,8 @@ public :
             point3d const & p6 = (p2/2) + (p0+p1+p3)/6;
             point3d const & p7 = (p3/2) + (p0+p1+p2)/6;
 
-            point3d barycenter = (p0+p1+p2+p3)/4;
-            point3d rand_p = point3d(0,0,0);
+            //point3d barycenter = (p0+p1+p2+p3)/4;
+            //point3d rand_p = point3d(0,0,0);
 
             //only one evaluation in the middle
             //wn_old = tree.fastWN( barycenter, tree.node, pointSet);
@@ -163,7 +162,7 @@ public :
             wn /= 10;
             */
 
-            windingNumbers.push_back(wn);
+            windingNumbers[t] = wn;
         }
         std::cout << "Done: WindingNumbers of Tet" << std::endl;
     }
@@ -494,38 +493,9 @@ public :
         glEnd();
     }
 
-    void test_graph_cut() {
-        {
-            typedef GraphCut_BK::Graph<int,int,int> MonTypeDeGraphePourGraphCut;
-            MonTypeDeGraphePourGraphCut *g = new MonTypeDeGraphePourGraphCut(/*estimated # of nodes*/ 2, /*estimated # of edges*/ 1);
-
-            g -> add_node();
-            g -> add_node();
-
-            g -> add_tweights( 0,   /* capacities */  5, 1 );
-            g -> add_tweights( 1,   /* capacities */  2, 6 );
-            g -> add_edge( 0, 1,    /* capacities */  3, 4 );
-
-            int flow = g -> maxflow();
-
-            printf("Flow = %d\n", flow);
-            printf("Minimum cut:\n");
-            if (g->what_segment(0) == MonTypeDeGraphePourGraphCut::SOURCE)
-                printf("node0 is in the SOURCE set\n");
-            else
-                printf("node0 is in the SINK set\n");
-            if (g->what_segment(1) == MonTypeDeGraphePourGraphCut::SOURCE)
-                printf("node1 is in the SOURCE set\n");
-            else
-                printf("node1 is in the SINK set\n");
-
-            delete g;
-        }
-    }
-
     void graph_cut(double sigma = 1){
 
-        typedef GraphCut_BK::Graph<int,int,double> MonTypeDeGraphePourGraphCut;
+        typedef GraphCut_BK::Graph<int,int,int> MonTypeDeGraphePourGraphCut;
         MonTypeDeGraphePourGraphCut *g = new MonTypeDeGraphePourGraphCut(/*estimated # of nodes*/ tetmesh.nTetrahedra(), /*estimated # of edges*/ tetmesh.nTetrahedra());
 
         //QUESTION HERE :not sure if vect<map> or vect<vect> is better
@@ -556,11 +526,14 @@ public :
 
         double flow = g -> maxflow();
 
-        wnGraphcut.clear();
+        wnGraphcut.resize(tetList.size());
         for( unsigned int i = 0 ; i < tetList.size() ; i++ ) {
-            if (Graph::what_segment(i) == MonTypeDeGraphePourGraphCut::SOURCE) wnGraphcut.push_back(1);
-            else wnGraphcut.push_back(0);
+            if (g->what_segment(i) == MonTypeDeGraphePourGraphCut::SOURCE)
+            wnGraphcut[i] = 1; // <-------------- PROBLEME ICI
+            else wnGraphcut[i] = 0;
         }
+
+
     }
 
     void pickBackgroundColor() {
