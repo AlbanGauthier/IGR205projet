@@ -32,7 +32,7 @@ static bool showKDTree = false;
 static int mode = 0;
 
 struct TriInt{
-    int i0, i1, i2;
+    int i0, i1, i2; // i0!=i1!=i2
 
     bool equals(TriInt const & t0, TriInt const & t1) const {
         if ((t0.i0 == t1.i0 || t0.i0 == t1.i1 || t0.i0 == t1.i2) &&
@@ -43,37 +43,70 @@ struct TriInt{
         else return false;
     }
 
+    bool inferior(TriInt const & t0, TriInt const& t1) const {
+        TriInt t0_ordered;
+        t0_ordered.i0 = t0.i0; t0_ordered.i1 = t0.i1; t0_ordered.i2 = t0.i2;
+        if (t0_ordered.i0 > t0_ordered.i1){
+            int temp = t0_ordered.i0;
+            t0_ordered.i0 = t0_ordered.i1;
+            t0_ordered.i1 = temp;
+        }
+        if (t0_ordered.i0 > t0_ordered.i2){
+            int temp = t0_ordered.i0;
+            t0_ordered.i0 = t0_ordered.i2;
+            t0_ordered.i2 = temp;
+        }
+        if (t0_ordered.i2 < t0_ordered.i1){
+            int temp = t0_ordered.i2;
+            t0_ordered.i2 = t0_ordered.i1;
+            t0_ordered.i1 = temp;
+        }
+
+        TriInt t1_ordered;
+        t1_ordered.i0 = t1.i0; t1_ordered.i1 = t1.i1; t1_ordered.i2 = t1.i2;
+        if (t1_ordered.i0 > t1_ordered.i1){
+            int temp = t1_ordered.i0;
+            t1_ordered.i0 = t1_ordered.i1;
+            t1_ordered.i1 = temp;
+        }
+        if (t1_ordered.i0 > t1_ordered.i2){
+            int temp = t1_ordered.i0;
+            t1_ordered.i0 = t1_ordered.i2;
+            t1_ordered.i2 = temp;
+        }
+        if (t1_ordered.i2 < t1_ordered.i1){
+            int temp = t1_ordered.i2;
+            t1_ordered.i2 = t1_ordered.i1;
+            t1_ordered.i1 = temp;
+        }
+
+        //compare first number
+        if (t0_ordered.i0 < t1_ordered.i0) return true;
+        else if (t0_ordered.i0 > t1_ordered.i0) return false;
+        else if (t0_ordered.i0 == t1_ordered.i0){
+            //compare second number
+            if(t0_ordered.i1 < t1_ordered.i1) return true;
+            else if(t0_ordered.i1 > t1_ordered.i1) return false;
+            else if(t0_ordered.i1 == t1_ordered.i1){
+                //compare third number
+                if (t0_ordered.i2 < t1_ordered.i2) return true;
+                else if (t0_ordered.i2 >= t1_ordered.i2) return false;
+            }
+        }
+    }
+
     bool operator< (TriInt const & otherTri) const {
-        if (!equals(*this, otherTri)) return true;
+        if (inferior(*this, otherTri)) return true;
         else return false;
     }
 };
 
 struct Tet{
-    TetGenHandler tetmesh;
     int index;
     int i0, i1, i2, i3;
     std::set<int> tetNeighbours;
 
-    std::map<TriInt, std::set<int> > findAdjTets(){
-        std::map<TriInt, std::set<int> > tetsSurTriangle;
-        for (int t = 0 ; t<tetmesh.nTetrahedra() ; t++){
-            point4ui tet = tetmesh.tetrahedron(t);
 
-            TriInt f0;
-            f0.i0 = tet.x(); f0.i1 = tet.y(); f0.i2 = tet.z();
-            tetsSurTriangle[f0].insert(t);
-            TriInt f1;
-            f1.i0 = tet.y(); f1.i1 = tet.z(); f1.i2 = tet.w();
-            tetsSurTriangle[f1].insert(t);
-            TriInt f2;
-            f2.i0 = tet.z(); f2.i1 = tet.w(); f2.i2 = tet.x();
-            tetsSurTriangle[f2].insert(t);
-            TriInt f3;
-            f3.i0 = tet.w(); f3.i1 = tet.x(); f3.i2 = tet.y();
-            tetsSurTriangle[f3].insert(t);
-        }
-    }
 };
 
 class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
@@ -169,6 +202,52 @@ public :
         }
     }
 
+    void test_map_struct(){
+        std::map<TriInt, std::set<int> > toBeFilled;
+        TriInt f0, f1, f2, f3;
+        f0.i0 = 0; f0.i1 = 1; f0.i2 = 2;
+        f1.i0 = 0; f1.i1 = 1; f1.i2 = 2;
+        f2.i0 = 0; f2.i1 = 2; f2.i2 = 1;
+        f3.i0 = 0; f3.i1 = 2; f3.i2 = 3;
+        toBeFilled[f0].insert(0);
+        std::cout << toBeFilled.size() << std::endl;
+        toBeFilled[f1].insert(1);
+        std::cout << toBeFilled.size() << std::endl;
+        toBeFilled[f2].insert(0);
+        std::cout << toBeFilled.size() << std::endl;
+        toBeFilled[f3].insert(2);
+        std::cout << toBeFilled.size() << std::endl;
+
+        std::cout << std::endl;
+        std::cout << toBeFilled[f0].size() << std::endl;
+
+        std::set<int>::iterator it;
+        for (it = toBeFilled[f0].begin() ; it != toBeFilled[f0].end() ; ++it){
+            std::cout << *it << std::endl;
+        }
+    }
+
+    std::map<TriInt, std::set<int> > findAdjTets(TetGenHandler tmesh){
+        std::map<TriInt, std::set<int> > tetsSurTriangle;
+        for (int t = 0 ; t<tmesh.nTetrahedra() ; t++){
+            point4ui tet = tmesh.tetrahedron(t);
+
+            TriInt f0;
+            f0.i0 = tet.x(); f0.i1 = tet.y(); f0.i2 = tet.z();
+            tetsSurTriangle[f0].insert(t);
+            TriInt f1;
+            f1.i0 = tet.y(); f1.i1 = tet.z(); f1.i2 = tet.w();
+            tetsSurTriangle[f1].insert(t);
+            TriInt f2;
+            f2.i0 = tet.z(); f2.i1 = tet.w(); f2.i2 = tet.x();
+            tetsSurTriangle[f2].insert(t);
+            TriInt f3;
+            f3.i0 = tet.w(); f3.i1 = tet.x(); f3.i2 = tet.y();
+            tetsSurTriangle[f3].insert(t);
+        }
+        return tetsSurTriangle;
+    }
+
     void fillTetStruct(){
         for (int t = 0 ; t<tetmesh.nTetrahedra() ; t++){
             point4ui tet = tetmesh.tetrahedron(t);
@@ -176,10 +255,10 @@ public :
             tetra.index = t;
             tetra.i0 = tet.x(); tetra.i1 = tet.y();
             tetra.i2 = tet.z(); tetra.i3 = tet.w();
-            tetra.tetmesh = tetmesh;
             adjTets.push_back(tetra);
         }
-        std::map<TriInt, std::set<int> > tetsSurTriangle = adjTets[0].Tet::findAdjTets();
+        std::map<TriInt, std::set<int> > tetsSurTriangle = findAdjTets(tetmesh);
+        std::cout << tetsSurTriangle.size() << std::endl;
         for (int t = 0 ; t<tetmesh.nTetrahedra() ; t++){
             Tet tetra = adjTets[t];
             TriInt f0;
@@ -198,22 +277,22 @@ public :
             std::set<int>::iterator it;
             for (it = trgs0.begin() ; it != trgs0.end() ; ++it){
                 if(*it != t){
-                    tetra.tetNeighbours.insert(*it);
+                    adjTets[t].tetNeighbours.insert(*it);
                 }
             }
             for (it = trgs1.begin() ; it != trgs1.end() ; ++it){
                 if(*it != t){
-                    tetra.tetNeighbours.insert(*it);
+                    adjTets[t].tetNeighbours.insert(*it);
                 }
             }
             for (it = trgs2.begin() ; it != trgs2.end() ; ++it){
                 if(*it != t){
-                    tetra.tetNeighbours.insert(*it);
+                    adjTets[t].tetNeighbours.insert(*it);
                 }
             }
             for (it = trgs3.begin() ; it != trgs3.end() ; ++it){
                 if(*it != t){
-                    tetra.tetNeighbours.insert(*it);
+                    adjTets[t].tetNeighbours.insert(*it);
                 }
             }
         }
@@ -254,8 +333,11 @@ public :
         }
         std::cout << "Done: WindingNumbers of Tet" << std::endl;
 
-        //fillTetStruct();
-        //std::cout << "Done: Tet structure filled" << std::endl;
+        fillTetStruct();
+        std::cout << "Done: Tet structure filled" << std::endl;
+        for (int i = 0 ; i<adjTets.size() ; i++){
+            std::cout << adjTets[i].tetNeighbours.size() << std::endl;
+        }
     }
 
     //Draw
