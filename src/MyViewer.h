@@ -27,12 +27,85 @@
 #include <QFileDialog>
 #include <QKeyEvent>
 
+#include <set>
+
 static bool showKDTree = false;
 static int mode = 0;
 
-struct Tet {
+struct TriInt{
+    int i0, i1, i2; // i0!=i1!=i2
+
+    bool equals(TriInt const & t0, TriInt const & t1) const {
+        if ((t0.i0 == t1.i0 || t0.i0 == t1.i1 || t0.i0 == t1.i2) &&
+                (t0.i1 == t1.i0 || t0.i1 == t1.i1 || t0.i1 == t1.i2) &&
+                (t0.i2 == t1.i0 || t0.i2 == t1.i1 || t0.i2 == t1.i2)){
+            return true;
+        }
+        else return false;
+    }
+
+    bool inferior(TriInt const & t0, TriInt const& t1) const {
+        TriInt t0_ordered;
+        t0_ordered.i0 = t0.i0; t0_ordered.i1 = t0.i1; t0_ordered.i2 = t0.i2;
+        if (t0_ordered.i0 > t0_ordered.i1){
+            int temp = t0_ordered.i0;
+            t0_ordered.i0 = t0_ordered.i1;
+            t0_ordered.i1 = temp;
+        }
+        if (t0_ordered.i0 > t0_ordered.i2){
+            int temp = t0_ordered.i0;
+            t0_ordered.i0 = t0_ordered.i2;
+            t0_ordered.i2 = temp;
+        }
+        if (t0_ordered.i2 < t0_ordered.i1){
+            int temp = t0_ordered.i2;
+            t0_ordered.i2 = t0_ordered.i1;
+            t0_ordered.i1 = temp;
+        }
+
+        TriInt t1_ordered;
+        t1_ordered.i0 = t1.i0; t1_ordered.i1 = t1.i1; t1_ordered.i2 = t1.i2;
+        if (t1_ordered.i0 > t1_ordered.i1){
+            int temp = t1_ordered.i0;
+            t1_ordered.i0 = t1_ordered.i1;
+            t1_ordered.i1 = temp;
+        }
+        if (t1_ordered.i0 > t1_ordered.i2){
+            int temp = t1_ordered.i0;
+            t1_ordered.i0 = t1_ordered.i2;
+            t1_ordered.i2 = temp;
+        }
+        if (t1_ordered.i2 < t1_ordered.i1){
+            int temp = t1_ordered.i2;
+            t1_ordered.i2 = t1_ordered.i1;
+            t1_ordered.i1 = temp;
+        }
+
+        //compare first number
+        if (t0_ordered.i0 < t1_ordered.i0) return true;
+        else if (t0_ordered.i0 > t1_ordered.i0) return false;
+        else if (t0_ordered.i0 == t1_ordered.i0){
+            //compare second number
+            if(t0_ordered.i1 < t1_ordered.i1) return true;
+            else if(t0_ordered.i1 > t1_ordered.i1) return false;
+            else if(t0_ordered.i1 == t1_ordered.i1){
+                //compare third number
+                if (t0_ordered.i2 < t1_ordered.i2) return true;
+                else if (t0_ordered.i2 >= t1_ordered.i2) return false;
+            }
+        }
+    }
+
+    bool operator< (TriInt const & otherTri) const {
+        if (inferior(*this, otherTri)) return true;
+        else return false;
+    }
+};
+
+struct Tet{
     int index;
-    std::set<int> tetNeighbors;
+    int i0, i1, i2, i3;
+    std::set<int> tetNeighbours;
 };
 
 class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
@@ -48,6 +121,7 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
     std::vector<Tet> tetList;
     double cutDepth = 0;
     double lambda = 0.0;
+    std::vector<Tet> adjTets;
 
 
     point3d bb, BB;
@@ -100,8 +174,132 @@ public :
     }
 
     //Initialization
-    void mainFunction(){
+    void test_graph_cut() {
+        {
+            typedef GraphCut_BK::Graph<int,int,int> MonTypeDeGraphePourGraphCut;
+            MonTypeDeGraphePourGraphCut *g = new MonTypeDeGraphePourGraphCut(/*estimated # of nodes*/ 2, /*estimated # of edges*/ 1);
 
+            g -> add_node();
+            g -> add_node();
+
+            g -> add_tweights( 0,   /* capacities */  5, 1 );
+            g -> add_tweights( 1,   /* capacities */  2, 6 );
+            g -> add_edge( 0, 1,    /* capacities */  3, 4 );
+
+            int flow = g -> maxflow();
+
+            printf("Flow = %d\n", flow);
+            printf("Minimum cut:\n");
+            if (g->what_segment(0) == MonTypeDeGraphePourGraphCut::SOURCE)
+                printf("node0 is in the SOURCE set\n");
+            else
+                printf("node0 is in the SINK set\n");
+            if (g->what_segment(1) == MonTypeDeGraphePourGraphCut::SOURCE)
+                printf("node1 is in the SOURCE set\n");
+            else
+                printf("node1 is in the SINK set\n");
+
+            delete g;
+        }
+    }
+
+    void test_map_struct(){
+        std::map<TriInt, std::set<int> > toBeFilled;
+        TriInt f0, f1, f2, f3;
+        f0.i0 = 0; f0.i1 = 1; f0.i2 = 2;
+        f1.i0 = 0; f1.i1 = 1; f1.i2 = 2;
+        f2.i0 = 0; f2.i1 = 2; f2.i2 = 1;
+        f3.i0 = 0; f3.i1 = 2; f3.i2 = 3;
+        toBeFilled[f0].insert(0);
+        std::cout << toBeFilled.size() << std::endl;
+        toBeFilled[f1].insert(1);
+        std::cout << toBeFilled.size() << std::endl;
+        toBeFilled[f2].insert(0);
+        std::cout << toBeFilled.size() << std::endl;
+        toBeFilled[f3].insert(2);
+        std::cout << toBeFilled.size() << std::endl;
+
+        std::cout << std::endl;
+        std::cout << toBeFilled[f0].size() << std::endl;
+
+        std::set<int>::iterator it;
+        for (it = toBeFilled[f0].begin() ; it != toBeFilled[f0].end() ; ++it){
+            std::cout << *it << std::endl;
+        }
+    }
+
+    std::map<TriInt, std::set<int> > findAdjTets(TetGenHandler tmesh){
+        std::map<TriInt, std::set<int> > tetsSurTriangle;
+        for (int t = 0 ; t<tmesh.nTetrahedra() ; t++){
+            point4ui tet = tmesh.tetrahedron(t);
+
+            TriInt f0;
+            f0.i0 = tet.x(); f0.i1 = tet.y(); f0.i2 = tet.z();
+            tetsSurTriangle[f0].insert(t);
+            TriInt f1;
+            f1.i0 = tet.y(); f1.i1 = tet.z(); f1.i2 = tet.w();
+            tetsSurTriangle[f1].insert(t);
+            TriInt f2;
+            f2.i0 = tet.z(); f2.i1 = tet.w(); f2.i2 = tet.x();
+            tetsSurTriangle[f2].insert(t);
+            TriInt f3;
+            f3.i0 = tet.w(); f3.i1 = tet.x(); f3.i2 = tet.y();
+            tetsSurTriangle[f3].insert(t);
+        }
+        return tetsSurTriangle;
+    }
+
+    void fillTetStruct(){
+        for (int t = 0 ; t<tetmesh.nTetrahedra() ; t++){
+            point4ui tet = tetmesh.tetrahedron(t);
+            Tet tetra;
+            tetra.index = t;
+            tetra.i0 = tet.x(); tetra.i1 = tet.y();
+            tetra.i2 = tet.z(); tetra.i3 = tet.w();
+            adjTets.push_back(tetra);
+        }
+        std::map<TriInt, std::set<int> > tetsSurTriangle = findAdjTets(tetmesh);
+        std::cout << tetsSurTriangle.size() << std::endl;
+        for (int t = 0 ; t<tetmesh.nTetrahedra() ; t++){
+            Tet tetra = adjTets[t];
+            TriInt f0;
+            f0.i0 = tetra.i0; f0.i1 = tetra.i1; f0.i2 = tetra.i2;
+            TriInt f1;
+            f1.i0 = tetra.i1; f1.i1 = tetra.i2; f1.i2 = tetra.i3;
+            TriInt f2;
+            f2.i0 = tetra.i2; f2.i1 = tetra.i3; f2.i2 = tetra.i0;
+            TriInt f3;
+            f3.i0 = tetra.i3; f3.i1 = tetra.i0; f3.i2 = tetra.i1;
+            std::set<int> trgs0 = tetsSurTriangle[f0];
+            std::set<int> trgs1 = tetsSurTriangle[f1];
+            std::set<int> trgs2 = tetsSurTriangle[f2];
+            std::set<int> trgs3 = tetsSurTriangle[f3];
+
+            std::set<int>::iterator it;
+            for (it = trgs0.begin() ; it != trgs0.end() ; ++it){
+                if(*it != t){
+                    adjTets[t].tetNeighbours.insert(*it);
+                }
+            }
+            for (it = trgs1.begin() ; it != trgs1.end() ; ++it){
+                if(*it != t){
+                    adjTets[t].tetNeighbours.insert(*it);
+                }
+            }
+            for (it = trgs2.begin() ; it != trgs2.end() ; ++it){
+                if(*it != t){
+                    adjTets[t].tetNeighbours.insert(*it);
+                }
+            }
+            for (it = trgs3.begin() ; it != trgs3.end() ; ++it){
+                if(*it != t){
+                    adjTets[t].tetNeighbours.insert(*it);
+                }
+            }
+        }
+    }
+
+    void mainFunction(){
         //computes points cloud
         std::vector< point3d > const cloudPositions = fromMeshToPointSet(mesh, pointSet);
         tetmesh.tetMesh;
@@ -165,6 +363,12 @@ public :
             windingNumbers[t] = wn;
         }
         std::cout << "Done: WindingNumbers of Tet" << std::endl;
+
+        fillTetStruct();
+        std::cout << "Done: Tet structure filled" << std::endl;
+        for (int i = 0 ; i<adjTets.size() ; i++){
+            std::cout << adjTets[i].tetNeighbours.size() << std::endl;
+        }
     }
 
     //source: Generating Random Points in a Tetrahedron, Visual Computing Lab of CNR-ISTI
