@@ -105,7 +105,7 @@ struct TriInt{
 struct Tet{
     int index;
     int i0, i1, i2, i3;
-    std::set<int> tetNeighbours;
+    std::set<int> tetNeighbors;
 };
 
 class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
@@ -278,22 +278,22 @@ public :
             std::set<int>::iterator it;
             for (it = trgs0.begin() ; it != trgs0.end() ; ++it){
                 if(*it != t){
-                    adjTets[t].tetNeighbours.insert(*it);
+                    adjTets[t].tetNeighbors.insert(*it);
                 }
             }
             for (it = trgs1.begin() ; it != trgs1.end() ; ++it){
                 if(*it != t){
-                    adjTets[t].tetNeighbours.insert(*it);
+                    adjTets[t].tetNeighbors.insert(*it);
                 }
             }
             for (it = trgs2.begin() ; it != trgs2.end() ; ++it){
                 if(*it != t){
-                    adjTets[t].tetNeighbours.insert(*it);
+                    adjTets[t].tetNeighbors.insert(*it);
                 }
             }
             for (it = trgs3.begin() ; it != trgs3.end() ; ++it){
                 if(*it != t){
-                    adjTets[t].tetNeighbours.insert(*it);
+                    adjTets[t].tetNeighbors.insert(*it);
                 }
             }
         }
@@ -366,9 +366,13 @@ public :
 
         fillTetStruct();
         std::cout << "Done: Tet structure filled" << std::endl;
-        for (int i = 0 ; i<adjTets.size() ; i++){
-            std::cout << adjTets[i].tetNeighbours.size() << std::endl;
-        }
+        /*for (int i = 0 ; i<adjTets.size() ; i++){
+            std::cout << adjTets[i].tetNeighbors.size() << std::endl;
+        }*/
+
+        std::cout << "Starting Graph cut" << std::endl;
+        graph_cut();
+        std::cout << "Graph cut : done" << std::endl;
     }
 
     //source: Generating Random Points in a Tetrahedron, Visual Computing Lab of CNR-ISTI
@@ -604,8 +608,9 @@ public :
             point3d const & p1 = tetmesh.vertex(tet.y());
             point3d const & p2 = tetmesh.vertex(tet.z());
             point3d const & p3 = tetmesh.vertex(tet.w());
+            std::cout << t << std::endl;
             double wn = wnGraphcut[t];
-          //std::cout << wn << std::endl;
+
             if (wn > 0.5) {
                 point3d tetcenter = (p0 + p1 + p2 + p3) / 4;
 
@@ -703,7 +708,7 @@ public :
         MonTypeDeGraphePourGraphCut *g = new MonTypeDeGraphePourGraphCut(/*estimated # of nodes*/ tetmesh.nTetrahedra(), /*estimated # of edges*/ tetmesh.nTetrahedra());
 
         //QUESTION HERE :not sure if vect<map> or vect<vect> is better
-        std::vector<bool> allFalse(4, false);
+        std::vector<bool> allFalse(tetmesh.nTetrahedra(), false);
         std::vector<std::vector<bool>> hasEdge(tetmesh.nTetrahedra(), allFalse);
 
         double wn = 0;
@@ -715,9 +720,11 @@ public :
             g -> add_tweights( i,   /* capacities */  std::max(1 - wn,(double)0), std::max(wn - 0,(double)0) );
         }
 
-        for( unsigned int i = 0 ; i < tetList.size() ; i++ ) {
-            wn = windingNumbers[tetList[i].index];
-            for( auto j : tetList[i].tetNeighbors) {
+        std::cout << adjTets.size() << std::endl;
+
+        for( unsigned int i = 0 ; i < adjTets.size() ; i++ ) {
+            wn = windingNumbers[adjTets[i].index];
+            for( auto j : adjTets[i].tetNeighbors) {
                 if (!hasEdge[i][j] && !hasEdge[j][i]) {
                     double tmp = windingNumbers[j];
                     double weight = exp(-(tmp-wn)*(tmp-wn)/(2*sigma*sigma)); //lacks aij
@@ -728,13 +735,15 @@ public :
             }
         }
 
+        std::cout << "flow" << std::endl;
         double flow = g -> maxflow();
 
-        wnGraphcut.resize(tetList.size());
-        for( unsigned int i = 0 ; i < tetList.size() ; i++ ) {
+        wnGraphcut.resize(adjTets.size());
+        for( unsigned int i = 0 ; i < adjTets.size() ; i++ ) {
             if (g->what_segment(i) == MonTypeDeGraphePourGraphCut::SOURCE)
             wnGraphcut[i] = 1; // <-------------- PROBLEME ICI
             else wnGraphcut[i] = 0;
+            std::cout << "hello" << std::endl;
         }
 
 
