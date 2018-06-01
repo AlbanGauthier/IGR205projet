@@ -364,6 +364,7 @@ public :
         }
         std::cout << "Done: WindingNumbers of Tet" << std::endl;
 
+
         fillTetStruct();
         std::cout << "Done: Tet structure filled" << std::endl;
         /*for (int i = 0 ; i<adjTets.size() ; i++){
@@ -373,6 +374,7 @@ public :
         std::cout << "Starting Graph cut" << std::endl;
         graph_cut();
         std::cout << "Graph cut : done" << std::endl;
+
     }
 
     //source: Generating Random Points in a Tetrahedron, Visual Computing Lab of CNR-ISTI
@@ -569,23 +571,48 @@ public :
     }
 
     void drawWindingNumberTetra() {
+        std::cout << "choose tetra" << std::endl;
         unsigned int nNeg = 0;
         point3d axis(camera()->viewDirection());
         point3d center(sceneCenter());
         double radius = sceneRadius();
         double centerAlongAxis = point3d::dot(axis ,center);
         double alongAxisCut = centerAlongAxis - radius + cutDepth * 2 * radius;
+        std::cout << "tetmesh.size : " << tetmesh.nTetrahedra() << std::endl;
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
-            point4ui tet = tetmesh.tetrahedron(t);
+            std::cout << "tet number : " << t << std::endl;
+            point4ui const tet2 = tetmesh.tetrahedron(t);
+            point3d const & p0 = tetmesh.vertex(tet2.x());
+            point3d const & p1 = tetmesh.vertex(tet2.y());
+            point3d const & p2 = tetmesh.vertex(tet2.z());
+            point3d const & p3 = tetmesh.vertex(tet2.w());
+            double wn2 = windingNumbers[t];/*
+            if (wn2 > 0.5) {
+                point3d tetcenter = (p0 + p1 + p2 + p3) / 4;
+                //if plane and tetrahedron intersect
+                if (alongAxisCut <= point3d::dot(axis ,tetcenter))
+                    drawTetra(tet2);
+            }*/
+
+        }
+
+        std::cout << "first loop DONE " << std::endl;
+        for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
+            std::cout << "1" << std::endl;
+            point4ui const tet = tetmesh.tetrahedron(t);
+            std::cout << "2" << std::endl;
             point3d const & p0 = tetmesh.vertex(tet.x());
+            std::cout << "3" << std::endl;
             point3d const & p1 = tetmesh.vertex(tet.y());
+            std::cout << "4" << std::endl;
+            std::cout << "z : " << tet.z() << std::endl;
             point3d const & p2 = tetmesh.vertex(tet.z());
+            std::cout << "5" << std::endl;
             point3d const & p3 = tetmesh.vertex(tet.w());
+            std::cout << "6" << std::endl;
             double wn = windingNumbers[t];
-          //std::cout << wn << std::endl;
             if (wn > 0.5) {
                 point3d tetcenter = (p0 + p1 + p2 + p3) / 4;
-
                 //if plane and tetrahedron intersect
                 if (alongAxisCut <= point3d::dot(axis ,tetcenter))
                     drawTetra(tet);
@@ -603,14 +630,18 @@ public :
         double centerAlongAxis = point3d::dot(axis ,center);
         double alongAxisCut = centerAlongAxis - radius + cutDepth * 2 * radius;
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
+            std::cout << wnGraphcut[t] << std::endl;
+        }
+        for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
+            std::cout << "choose tetra" << std::endl;
             point4ui tet = tetmesh.tetrahedron(t);
+            std::cout << t << std::endl;
             point3d const & p0 = tetmesh.vertex(tet.x());
             point3d const & p1 = tetmesh.vertex(tet.y());
             point3d const & p2 = tetmesh.vertex(tet.z());
             point3d const & p3 = tetmesh.vertex(tet.w());
-            std::cout << t << std::endl;
             double wn = wnGraphcut[t];
-
+            std::cout << "wn ok" << std::endl;
             if (wn > 0.5) {
                 point3d tetcenter = (p0 + p1 + p2 + p3) / 4;
 
@@ -720,7 +751,7 @@ public :
             g -> add_tweights( i,   /* capacities */  std::max(1 - wn,(double)0), std::max(wn - 0,(double)0) );
         }
 
-        std::cout << adjTets.size() << std::endl;
+        std::cout << adjTets.size() << " tets" << std::endl;
 
         for( unsigned int i = 0 ; i < adjTets.size() ; i++ ) {
             wn = windingNumbers[adjTets[i].index];
@@ -735,18 +766,22 @@ public :
             }
         }
 
-        std::cout << "flow" << std::endl;
         double flow = g -> maxflow();
 
         wnGraphcut.resize(adjTets.size());
+        int n = 0;
         for( unsigned int i = 0 ; i < adjTets.size() ; i++ ) {
-            if (g->what_segment(i) == MonTypeDeGraphePourGraphCut::SOURCE)
-            wnGraphcut[i] = 1; // <-------------- PROBLEME ICI
-            else wnGraphcut[i] = 0;
-            std::cout << "hello" << std::endl;
+            if (g->what_segment(i) == MonTypeDeGraphePourGraphCut::SOURCE) {
+                wnGraphcut[i] = 1; // <-------------- PROBLEME ICI
+            } else {
+                wnGraphcut[i] = 0 ;
+            }
+            n++;
         }
-
-
+        /*
+        std::cout << n << std::endl;
+        std::cout << tetmesh.nTetrahedra() << std::endl;
+        */
     }
 
     void pickBackgroundColor() {
