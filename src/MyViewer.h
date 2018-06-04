@@ -699,9 +699,9 @@ public :
         glEnd();
     }
 
-    void graph_cut(double sigma = 1){
+    void graph_cut(double sigma = 1.5 , double gamma = 1.1){
 
-        typedef GraphCut_BK::Graph<int,int,int> MonTypeDeGraphePourGraphCut;
+        typedef GraphCut_BK::Graph<double,double,double> MonTypeDeGraphePourGraphCut;
         MonTypeDeGraphePourGraphCut *g = new MonTypeDeGraphePourGraphCut(/*estimated # of nodes*/ tetmesh.nTetrahedra(), /*estimated # of edges*/ tetmesh.nTetrahedra());
 
         //QUESTION HERE :not sure if vect<map> or vect<vect> is better
@@ -715,17 +715,20 @@ public :
         for( unsigned int i = 0 ; i < tetmesh.nTetrahedra() ; i++ ) {
             g -> add_node();
             wn = windingNumbers[i];
-            g -> add_tweights( i,   /* capacities */  std::max(1 - wn,(double)0), std::max(wn - 0,(double)0) );
+            g -> add_tweights( i,   /* capacities */  std::max<double>(1.0 - wn,0.0),  std::max<double>(wn,0.0) );
         }
 
         std::cout << adjTets.size() << " tets" << std::endl;
+        double epsilonMin = 0.0000000000001;
 
         for( unsigned int i = 0 ; i < adjTets.size() ; i++ ) {
             wn = windingNumbers[adjTets[i].index];
             for( auto j : adjTets[i].tetNeighbors) {
                 if (!hasEdge[i][j] && !hasEdge[j][i]) {
                     double tmp = windingNumbers[j];
-                    double weight = exp(-(tmp-wn)*(tmp-wn)/(2*sigma*sigma)); //lacks aij
+                    double weight = gamma * exp(-(tmp-wn)*(tmp-wn)/(2*sigma*sigma)); //lacks aij
+                    weight = std::max<double>(epsilonMin,weight);
+                  //  if(weight < 0.0 ) assert(0);
                     g -> add_edge( i, j,    /* capacities */  weight, weight );
                     hasEdge[i][j] = true;
                     hasEdge[j][i] = true;
