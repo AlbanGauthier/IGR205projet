@@ -436,7 +436,6 @@ public :
             drawWindingNumberTetra();
             break;
         case 3:
-            std::cout << "graph cut display" << std::endl;
             drawGraphCutDisplay();
             break;
         }
@@ -706,8 +705,9 @@ public :
         MonTypeDeGraphePourGraphCut *g = new MonTypeDeGraphePourGraphCut(/*estimated # of nodes*/ tetmesh.nTetrahedra(), /*estimated # of edges*/ tetmesh.nTetrahedra());
 
         //QUESTION HERE :not sure if vect<map> or vect<vect> is better
-        std::vector<bool> allFalse(tetmesh.nTetrahedra(), false);
-        std::vector<std::vector<bool>> hasEdge(tetmesh.nTetrahedra(), allFalse);
+       // std::vector<bool> allFalse(tetmesh.nTetrahedra(), false);
+      //  std::vector<std::vector<bool>> hasEdge(tetmesh.nTetrahedra(), allFalse);
+        std::vector<std::map<int,bool>> hasEdge(tetmesh.nTetrahedra());
 
         double wn = 0;
 

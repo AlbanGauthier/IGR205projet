@@ -23,6 +23,7 @@ struct TetGenHandler{
         in.numberoffacets = 0;
 
         tetgenbehavior desiredBehavior;
+       // desiredBehavior.quality = 1; desiredBehavior.minratio = 2;
         tetrahedralize(&desiredBehavior, &in, &tetMesh);
     }
 
