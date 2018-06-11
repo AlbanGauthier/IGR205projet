@@ -106,6 +106,7 @@ struct Tet{
     int index;
     int i0=0, i1=0, i2=0, i3=0;
     std::set<int> tetNeighbors;
+    std::map<int, double> commonArea;
 };
 
 class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
@@ -123,6 +124,8 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
     double lambda = 0.0;
     std::vector<Tet> adjTets;
 
+    //used for the statistic analysis
+    std::vector<int> depth_stats;
 
     point3d bb, BB;
 
@@ -232,7 +235,6 @@ public :
         std::map<TriInt, std::set<int> > tetsSurTriangle;
         for (int t = 0 ; t<tmesh.nTetrahedra() ; t++){
             point4ui tet = tmesh.tetrahedron(t);
-
             TriInt f0;
             f0.i0 = tet.x(); f0.i1 = tet.y(); f0.i2 = tet.z();
             tetsSurTriangle[f0].insert(t);
@@ -251,6 +253,8 @@ public :
 
     void fillTetStruct(){
         adjTets.resize(tetmesh.nTetrahedra());
+
+        //init adjTets list with each tetrahedron
         for (int t = 0 ; t<tetmesh.nTetrahedra() ; t++){
             point4ui tet = tetmesh.tetrahedron(t);
             Tet tetra;
@@ -259,9 +263,11 @@ public :
             tetra.i2 = tet.z(); tetra.i3 = tet.w();
             adjTets[t] = tetra;
         }
+        //return for a given triangle triplet the index of its tetrahedra in tetmesh
         std::map<TriInt, std::set<int> > tetsSurTriangle = findAdjTets(tetmesh);
-        std::cout << tetsSurTriangle.size() << std::endl;
+        //fill in the adjTets structure
         for (int t = 0 ; t<tetmesh.nTetrahedra() ; t++){
+            //for each tetra create 4  triangles
             Tet tetra = adjTets[t];
             TriInt f0;
             f0.i0 = tetra.i0; f0.i1 = tetra.i1; f0.i2 = tetra.i2;
@@ -271,6 +277,7 @@ public :
             f2.i0 = tetra.i2; f2.i1 = tetra.i3; f2.i2 = tetra.i0;
             TriInt f3;
             f3.i0 = tetra.i3; f3.i1 = tetra.i0; f3.i2 = tetra.i1;
+            //get the set of corresponding tetra indices
             std::set<int> trgs0 = tetsSurTriangle[f0];
             std::set<int> trgs1 = tetsSurTriangle[f1];
             std::set<int> trgs2 = tetsSurTriangle[f2];
@@ -278,22 +285,34 @@ public :
 
             std::set<int>::iterator it;
             for (it = trgs0.begin() ; it != trgs0.end() ; ++it){
-                if(*it != t){
+                if(*it != t) {
+                    double area = point3d::cross(tetmesh.vertex(tetra.i0) - tetmesh.vertex(tetra.i1),
+                                        tetmesh.vertex(tetra.i0) - tetmesh.vertex(tetra.i2)).norm()/2;
+                    adjTets[t].commonArea[*it] = area;
                     adjTets[t].tetNeighbors.insert(*it);
                 }
             }
             for (it = trgs1.begin() ; it != trgs1.end() ; ++it){
-                if(*it != t){
+                if(*it != t) {
+                    double area = point3d::cross(tetmesh.vertex(tetra.i1) - tetmesh.vertex(tetra.i2),
+                                        tetmesh.vertex(tetra.i1) - tetmesh.vertex(tetra.i3)).norm()/2;
+                    adjTets[t].commonArea[*it] = area;
                     adjTets[t].tetNeighbors.insert(*it);
                 }
             }
             for (it = trgs2.begin() ; it != trgs2.end() ; ++it){
-                if(*it != t){
+                if(*it != t) {
+                    double area = point3d::cross(tetmesh.vertex(tetra.i0) - tetmesh.vertex(tetra.i2),
+                                        tetmesh.vertex(tetra.i0) - tetmesh.vertex(tetra.i3)).norm()/2;
+                    adjTets[t].commonArea[*it] = area;
                     adjTets[t].tetNeighbors.insert(*it);
                 }
             }
             for (it = trgs3.begin() ; it != trgs3.end() ; ++it){
-                if(*it != t){
+                if(*it != t) {
+                    double area = point3d::cross(tetmesh.vertex(tetra.i0) - tetmesh.vertex(tetra.i1),
+                                        tetmesh.vertex(tetra.i0) - tetmesh.vertex(tetra.i3)).norm()/2;
+                    adjTets[t].commonArea[*it] = area;
                     adjTets[t].tetNeighbors.insert(*it);
                 }
             }
@@ -322,10 +341,10 @@ public :
         std::vector<int> iota2(pointSet.size()) ;
         std::iota (std::begin(iota2), std::end(iota2), 0);
         double wn = 0, wn1=0, wn2=0, wn3=0, wn4=0;
-        double wn_old = 0;
-        double tmp = 0;
 
         windingNumbers.resize(tetmesh.nTetrahedra());
+        depth_stats.resize((int)sqrt(pointSet.size()));
+        int depth = 0;
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
             point4ui tet = tetmesh.tetrahedron(t);
             point3d const & p0 = tetmesh.vertex(tet.x());
@@ -338,70 +357,40 @@ public :
             point3d const & p6 = (p2/2) + (p0+p1+p3)/6;
             point3d const & p7 = (p3/2) + (p0+p1+p2)/6;
 
-            //point3d barycenter = (p0+p1+p2+p3)/4;
-            //point3d rand_p = point3d(0,0,0);
-
-            //only one evaluation in the middle
-            //wn_old = tree.fastWN( barycenter, tree.node, pointSet);
-
             //4 evaluations inside de tetrahedron
-            wn1 = tree.fastWN( p4, tree.node, pointSet);
-            wn2 = tree.fastWN( p5, tree.node, pointSet);
-            wn3 = tree.fastWN( p6, tree.node, pointSet);
-            wn4 = tree.fastWN( p7, tree.node, pointSet);
+            depth = 0;
+            wn1 = tree.fastWN( p4, tree.node, pointSet, depth);
+            depth_stats[depth] += 1;
+            depth = 0;
+            wn2 = tree.fastWN( p5, tree.node, pointSet, depth);
+            depth_stats[depth] += 1;
+            depth = 0;
+            wn3 = tree.fastWN( p6, tree.node, pointSet, depth);
+            depth_stats[depth] += 1;
+            depth = 0;
+            wn4 = tree.fastWN( p7, tree.node, pointSet, depth);
+            depth_stats[depth] += 1;
             wn = (wn1+wn2+wn3+wn4)/4;
-
-            /* //randomly select points in the tetrahedron, near to the center
-            for( unsigned int i = 0 ; i < 10 ; i++ ) {
-                tmp = 0;
-                rand_p = pick(p0,p1,p2,p3);
-                tmp = tree.fastWN( 0.1*(barycenter - rand_p) + barycenter , tree.node, pointSet);
-                wn += tmp;
-            }
-            wn /= 10;
-            */
-
             windingNumbers[t] = wn;
         }
         std::cout << "Done: WindingNumbers of Tet" << std::endl;
 
-
         fillTetStruct();
         std::cout << "Done: Tet structure filled" << std::endl;
-        /*for (int i = 0 ; i<adjTets.size() ; i++){
-            std::cout << adjTets[i].tetNeighbors.size() << std::endl;
-        }*/
 
-        std::cout << "Starting Graph cut" << std::endl;
         graph_cut();
-        std::cout << "Graph cut : done" << std::endl;
+        std::cout << "Done: Graph cut" << std::endl;
 
+        int total_depth = tree.node.compute_depth();
+        std::cout << "Depth of the KDTree : " << total_depth << std::endl;
+        for(unsigned int i = 0; i<depth_stats.size(); i++) {
+            if (depth_stats[i] != 0) std::cout << "at depth : " << i
+                                               << " number of wn approx : " << depth_stats[i]
+                                               << " (number of pts : " << (int)(pointSet.size()/(pow(2,i)))+1 << ")"
+                                               << std::endl;
+        }
     }
 
-    //source: Generating Random Points in a Tetrahedron, Visual Computing Lab of CNR-ISTI
-    //http://vcg.isti.cnr.it/jgt/tetra.htm
-    point3d pick(point3d const & v0, point3d const & v1, point3d const & v2, point3d const & v3) {
-        double s = (double) std::rand()/(RAND_MAX);
-        double t = (double) std::rand()/(RAND_MAX);
-        double u = (double) std::rand()/(RAND_MAX);
-        if(s+t>1.0) { // cut'n fold the cube into a prism
-            s = 1.0 - s;
-            t = 1.0 - t;
-        }
-        if(t+u>1.0) { // cut'n fold the prism into a tetrahedron
-            double tmp = u;
-            u = 1.0 - s - t;
-            t = 1.0 - tmp;
-        } else if(s+t+u>1.0) {
-            double tmp = u;
-            u = s + t + u - 1.0;
-            s = 1 - t - tmp;
-        }
-        double a=1-s-t-u; // a,s,t,u are the barycentric coordinates of the random point.
-        return v0*a + v1*s + v2*t + v3*u;
-    }
-
-    //Draw
     void draw() {
         if (showKDTree) {
             std::cout << "show kdtree" << std::endl;
@@ -592,7 +581,7 @@ public :
             }
             else ++nNeg;
         }
-        std::cout << nNeg << "  /  " << tetmesh.nTetrahedra() << std::endl;
+        //std::cout << nNeg << "  /  " << tetmesh.nTetrahedra() << std::endl;
     }
 
     void drawGraphCutDisplay() {
@@ -699,16 +688,12 @@ public :
         glEnd();
     }
 
-    void graph_cut(double sigma = 1.5 , double gamma = 1.1){
+    void graph_cut(double sigma = 1 , double gamma = 1){
 
         typedef GraphCut_BK::Graph<double,double,double> MonTypeDeGraphePourGraphCut;
         MonTypeDeGraphePourGraphCut *g = new MonTypeDeGraphePourGraphCut(/*estimated # of nodes*/ tetmesh.nTetrahedra(), /*estimated # of edges*/ tetmesh.nTetrahedra());
 
-        //QUESTION HERE :not sure if vect<map> or vect<vect> is better
-       // std::vector<bool> allFalse(tetmesh.nTetrahedra(), false);
-      //  std::vector<std::vector<bool>> hasEdge(tetmesh.nTetrahedra(), allFalse);
         std::vector<std::map<int,bool>> hasEdge(tetmesh.nTetrahedra());
-
         double wn = 0;
 
         //each tetrahedron has a node
@@ -717,18 +702,15 @@ public :
             wn = windingNumbers[i];
             g -> add_tweights( i,   /* capacities */  std::max<double>(1.0 - wn,0.0),  std::max<double>(wn,0.0) );
         }
-
-        std::cout << adjTets.size() << " tets" << std::endl;
         double epsilonMin = 0.0000000000001;
-
         for( unsigned int i = 0 ; i < adjTets.size() ; i++ ) {
             wn = windingNumbers[adjTets[i].index];
             for( auto j : adjTets[i].tetNeighbors) {
                 if (!hasEdge[i][j] && !hasEdge[j][i]) {
+                    //std::cout << adjTets[i].commonArea[j] << std::endl;
                     double tmp = windingNumbers[j];
-                    double weight = gamma * exp(-(tmp-wn)*(tmp-wn)/(2*sigma*sigma)); //lacks aij
+                    double weight = gamma * exp(-(tmp-wn)*(tmp-wn)) * adjTets[i].commonArea[j]/(2*sigma*sigma);
                     weight = std::max<double>(epsilonMin,weight);
-                  //  if(weight < 0.0 ) assert(0);
                     g -> add_edge( i, j,    /* capacities */  weight, weight );
                     hasEdge[i][j] = true;
                     hasEdge[j][i] = true;
@@ -742,16 +724,12 @@ public :
         int n = 0;
         for( unsigned int i = 0 ; i < adjTets.size() ; i++ ) {
             if (g->what_segment(i) == MonTypeDeGraphePourGraphCut::SOURCE) {
-                wnGraphcut[i] = 0; // <-------------- PROBLEME ICI
+                wnGraphcut[i] = 0;
             } else {
                 wnGraphcut[i] = 1 ;
             }
             n++;
         }
-        /*
-        std::cout << n << std::endl;
-        std::cout << tetmesh.nTetrahedra() << std::endl;
-        */
     }
 
     void pickBackgroundColor() {

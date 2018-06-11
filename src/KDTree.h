@@ -19,6 +19,18 @@ struct KDNode{
     double area;
     KDNode *leftChild;
     KDNode *rightChild;
+    public:
+        int compute_depth() const {
+            if (leftChild == nullptr && rightChild == nullptr) {
+                return 1;
+            } else if (leftChild == nullptr && rightChild != nullptr) {
+                return rightChild->compute_depth() + 1;
+            } else if (leftChild != nullptr && rightChild == nullptr) {
+                return leftChild->compute_depth() + 1;
+            } else {
+                return std::max(leftChild->compute_depth(),rightChild->compute_depth()) + 1;
+            }
+        }
 };
 
 struct KDTree {
@@ -90,7 +102,7 @@ struct KDTree {
         return longestAxis;
     }
 
-    int findMedianSample(std::vector<int> const & sortedIndices, std::vector<Triplet> & pointSet){
+    int findMedianSample(std::vector<int> const & sortedIndices){
         if (sortedIndices.size() % 2 == 1){
             return sortedIndices[(sortedIndices.size()-1)/2];
         }
@@ -182,20 +194,12 @@ struct KDTree {
         return n;
     }
 
-    double fastWN(point3d const & q, KDNode const & node, std::vector<Triplet> const & pointSet) {
-
+    double fastWN(point3d const & q, KDNode const & node, std::vector<Triplet> const & pointSet, int & depth) {
         //initialization
         point3d treeP = node.meanP; // = ptilde
         double treeR = node.bbox.radius();
         point3d nTilde = node.meanN;
-
-        //computes treeR, maximum distance from tree.p to any of its elements
-    /*    for(unsigned i = 0; i<node.data.size(); i++) {
-            double temp = (treeP-pointSet[node.data[i]].p).norm();
-            if (temp > treeR) treeR = temp;
-        }
-        */
-
+        depth += 1;
         if ((q - treeP).norm() > beta * treeR && treeR != 0) {
             double dist = (treeP - q).norm();
             return point3d::dot(treeP - q,nTilde)/(4*M_PI*dist*dist*dist); // = wtilde
@@ -211,13 +215,15 @@ struct KDTree {
                 }
             }
             else {
-                val += fastWN(q, *node.leftChild, pointSet);
-                val += fastWN(q, *node.rightChild, pointSet);
+                int tmp = 0;
+                int tmp2 = 0;
+                val += fastWN(q, *node.leftChild, pointSet, tmp);
+                val += fastWN(q, *node.rightChild, pointSet, tmp2);
+                depth += std::max(tmp,tmp2);
             }
             return val;
         }
     }
-
 };
 
 #endif // KDTREE_H
