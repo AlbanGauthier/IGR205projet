@@ -94,6 +94,8 @@ struct TriInt{
                 else if (t0_ordered.i2 >= t1_ordered.i2) return false;
             }
         }
+        //by default
+        return false;
     }
 
     bool operator< (TriInt const & otherTri) const {
@@ -233,7 +235,7 @@ public :
 
     std::map<TriInt, std::set<int> > findAdjTets(TetGenHandler const & tmesh){
         std::map<TriInt, std::set<int> > tetsSurTriangle;
-        for (int t = 0 ; t<tmesh.nTetrahedra() ; t++){
+        for (unsigned int t = 0 ; t<tmesh.nTetrahedra() ; t++){
             point4ui tet = tmesh.tetrahedron(t);
             TriInt f0;
             f0.i0 = tet.x(); f0.i1 = tet.y(); f0.i2 = tet.z();
@@ -255,7 +257,7 @@ public :
         adjTets.resize(tetmesh.nTetrahedra());
 
         //init adjTets list with each tetrahedron
-        for (int t = 0 ; t<tetmesh.nTetrahedra() ; t++){
+        for (unsigned int t = 0 ; t<tetmesh.nTetrahedra() ; t++){
             point4ui tet = tetmesh.tetrahedron(t);
             Tet tetra;
             tetra.index = t;
@@ -266,7 +268,7 @@ public :
         //return for a given triangle triplet the index of its tetrahedra in tetmesh
         std::map<TriInt, std::set<int> > tetsSurTriangle = findAdjTets(tetmesh);
         //fill in the adjTets structure
-        for (int t = 0 ; t<tetmesh.nTetrahedra() ; t++){
+        for (int t = 0 ; t< (int)tetmesh.nTetrahedra() ; t++){
             //for each tetra create 4  triangles
             Tet tetra = adjTets[t];
             TriInt f0;
@@ -320,9 +322,10 @@ public :
     }
 
     void mainFunction(){
+
         //computes points cloud
         std::vector< point3d > const cloudPositions = fromMeshToPointSet(mesh, pointSet);
-        tetmesh.tetMesh;
+        //tetmesh.tetMesh;
         tetmesh.TetGenHandler::computeTetMeshFromCloud ( cloudPositions );
         std::cout << "PointSet created : " << pointSet.size() << " points" << std::endl;
 
@@ -432,7 +435,7 @@ public :
 
     void computeCutDepth(){
         double closestPtDepth = 1, farestPtDepth = 0;
-        for (int i = 0 ; i<mesh.vertices.size() ; i++){
+        for (unsigned int i = 0 ; i<mesh.vertices.size() ; i++){
             point3d pt = mesh.vertices[i].p;
             qglviewer::Vec ptproj = camera()->projectedCoordinatesOf(qglviewer::Vec(pt[0],pt[1],pt[2]));
             if (closestPtDepth > ptproj[2]){
@@ -471,7 +474,6 @@ public :
         double radius = sceneRadius();
         double centerAlongAxis = point3d::dot(axis ,center);
         double alongAxisCut = centerAlongAxis - radius + cutDepth * 2 * radius;
-        int compteur = 0;
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
             double wn = windingNumbers[t];
             if (wn > 0.5){
@@ -718,7 +720,7 @@ public :
             }
         }
 
-        double flow = g -> maxflow();
+        g -> maxflow();
 
         wnGraphcut.resize(adjTets.size());
         int n = 0;

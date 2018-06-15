@@ -199,14 +199,15 @@ struct KDTree {
         point3d treeP = node.meanP; // = ptilde
         double treeR = node.bbox.radius();
         point3d nTilde = node.meanN;
-        depth += 1;
         if ((q - treeP).norm() > beta * treeR && treeR != 0) {
+            depth = 1;
             double dist = (treeP - q).norm();
             return point3d::dot(treeP - q,nTilde)/(4*M_PI*dist*dist*dist); // = wtilde
         }
         else {
             double val = 0;
             if (node.leftChild == nullptr && node.rightChild == nullptr) {
+                depth = 1;
                 for (unsigned int j = 0 ; j<node.data.size() ; j++) {
                     point3d p = pointSet[node.data[j]].p;
                     point3d n = pointSet[node.data[j]].n;
@@ -219,7 +220,7 @@ struct KDTree {
                 int tmp2 = 0;
                 val += fastWN(q, *node.leftChild, pointSet, tmp);
                 val += fastWN(q, *node.rightChild, pointSet, tmp2);
-                depth += std::max(tmp,tmp2);
+                depth += std::max(tmp,tmp2) + 1;
             }
             return val;
         }
