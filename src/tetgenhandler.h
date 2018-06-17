@@ -14,7 +14,7 @@ struct TetGenHandler{
         in.numberofpoints = cloudPositions.size();
         in.pointlist = new REAL[ 3 * in.numberofpoints ];
 
-        for( unsigned int v = 0 ; v < in.numberofpoints ; ++v ) {
+        for( int v = 0 ; v < in.numberofpoints ; ++v ) {
             for( unsigned int c = 0 ; c < 3 ; ++c )
                 in.pointlist[3*v+c] = cloudPositions[v][c];
         }
@@ -34,7 +34,7 @@ struct TetGenHandler{
         in.numberofpoints = cloudPositions.size();
         in.pointlist = new REAL[ 3 * in.numberofpoints ];
 
-        for( unsigned int v = 0 ; v < in.numberofpoints ; ++v ) {
+        for( int v = 0 ; v < in.numberofpoints ; ++v ) {
             for( unsigned int c = 0 ; c < 3 ; ++c )
                 in.pointlist[3*v+c] = cloudPositions[v][c];
         }

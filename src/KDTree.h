@@ -127,15 +127,11 @@ struct KDTree {
 
     point3d findMeanNormal(std::vector<int> const & sortedIndices, std::vector<Triplet> & pointSet){
         point3d meanN = point3d(0,0,0);
-        double areaSum = 0;
-
         for(unsigned i = 0; i<sortedIndices.size(); i++) {
             unsigned int v = sortedIndices[i];
             double area = pointSet[v].area;
             meanN += area * pointSet[v].n;
-            //areaSum += area;
         }
-        //meanN /= areaSum;
         return meanN;
     }
 
@@ -194,20 +190,49 @@ struct KDTree {
         return n;
     }
 
-    double fastWN(point3d const & q, KDNode const & node, std::vector<Triplet> const & pointSet, int & depth) {
+    //Nearest Neighbor Search
+    void NNS(point3d const & q, KDNode const & node, std::vector<Triplet> const & pointSet, point3d & p, double & dist) {
+        if (node.leftChild == nullptr && node.rightChild == nullptr) {
+            double tmp = (q - pointSet[node.data[0]].p).norm();
+            if (tmp < dist) {
+                p = pointSet[node.data[0]].p;
+                dist = tmp;
+            }
+        } else {
+            int maxAxis = findMaxAxis(node.bbox);
+            double split = 0;
+            double search_left_first = true;
+            if (maxAxis == 0) {
+                split = (node.bbox.xMax - node.bbox.xMax)/2;
+            } else if (maxAxis == 1) {
+                split = (node.bbox.yMax - node.bbox.yMax)/2;
+            } else {
+                split = (node.bbox.zMax - node.bbox.zMax)/2;
+            }
+            if (q[maxAxis] <= split) search_left_first = false;
+            if (search_left_first) {
+                if ( (q[maxAxis] - dist) <= split ) NNS(q,*node.rightChild,pointSet,p,dist);
+                if ( (q[maxAxis] + dist) >  split ) NNS(q,*node.leftChild,pointSet,p,dist);
+            } else {
+                if ( (q[maxAxis] + dist) >  split ) NNS(q,*node.leftChild,pointSet,p,dist);
+                if ( (q[maxAxis] - dist) <= split ) NNS(q,*node.rightChild,pointSet,p,dist);
+            }
+        }
+    }
+
+    double fastWN(point3d const & q, KDNode const & node, std::vector<Triplet> const & pointSet, int & visitedNodes) {
         //initialization
+        visitedNodes += 1;
         point3d treeP = node.meanP; // = ptilde
         double treeR = node.bbox.radius();
         point3d nTilde = node.meanN;
         if ((q - treeP).norm() > beta * treeR && treeR != 0) {
-            depth = 1;
             double dist = (treeP - q).norm();
             return point3d::dot(treeP - q,nTilde)/(4*M_PI*dist*dist*dist); // = wtilde
         }
         else {
             double val = 0;
             if (node.leftChild == nullptr && node.rightChild == nullptr) {
-                depth = 1;
                 for (unsigned int j = 0 ; j<node.data.size() ; j++) {
                     point3d p = pointSet[node.data[j]].p;
                     point3d n = pointSet[node.data[j]].n;
@@ -216,11 +241,8 @@ struct KDTree {
                 }
             }
             else {
-                int tmp = 0;
-                int tmp2 = 0;
-                val += fastWN(q, *node.leftChild, pointSet, tmp);
-                val += fastWN(q, *node.rightChild, pointSet, tmp2);
-                depth += std::max(tmp,tmp2) + 1;
+                val += fastWN(q, *node.leftChild, pointSet, visitedNodes);
+                val += fastWN(q, *node.rightChild, pointSet, visitedNodes);
             }
             return val;
         }

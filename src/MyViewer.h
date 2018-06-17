@@ -14,6 +14,9 @@
 
 // Parsing:
 #include "BasicIO.h"
+#include <iostream>
+#include <fstream>
+#include <string>
 
 // opengl and basic gl utilities:
 #include <gl/openglincludeQtComp.h>
@@ -127,7 +130,8 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
     std::vector<Tet> adjTets;
 
     //used for the statistic analysis
-    std::vector<int> depth_stats;
+    std::vector<int> visited_nodes;
+    std::vector<double> distanceToSurface;
 
     point3d bb, BB;
 
@@ -346,8 +350,12 @@ public :
         double wn = 0, wn1=0, wn2=0, wn3=0, wn4=0;
 
         windingNumbers.resize(tetmesh.nTetrahedra());
-        depth_stats.resize((int)sqrt(pointSet.size()));
-        int depth = 0;
+        visited_nodes.resize(tetmesh.nTetrahedra());
+        distanceToSurface.resize(tetmesh.nTetrahedra());
+        int nb_nodes = 0;
+        double dist = 0;
+        point3d p;
+        double bBoxAxis = tree.node.bbox.xMax - tree.node.bbox.xMin;
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
             point4ui tet = tetmesh.tetrahedron(t);
             point3d const & p0 = tetmesh.vertex(tet.x());
@@ -361,18 +369,34 @@ public :
             point3d const & p7 = (p3/2) + (p0+p1+p2)/6;
 
             //4 evaluations inside de tetrahedron
-            depth = 0;
-            wn1 = tree.fastWN( p4, tree.node, pointSet, depth);
-            depth_stats[depth] += 1;
-            depth = 0;
-            wn2 = tree.fastWN( p5, tree.node, pointSet, depth);
-            depth_stats[depth] += 1;
-            depth = 0;
-            wn3 = tree.fastWN( p6, tree.node, pointSet, depth);
-            depth_stats[depth] += 1;
-            depth = 0;
-            wn4 = tree.fastWN( p7, tree.node, pointSet, depth);
-            depth_stats[depth] += 1;
+            nb_nodes = 0;
+            dist = std::numeric_limits<double>::infinity();
+            wn1 = tree.fastWN( p4, tree.node, pointSet, nb_nodes);
+            visited_nodes[t] = nb_nodes;
+            tree.NNS(p4,tree.node,pointSet,p,dist);
+            distanceToSurface[t] = dist/bBoxAxis;
+
+            nb_nodes = 0;
+            dist = std::numeric_limits<double>::infinity();
+            wn2 = tree.fastWN( p5, tree.node, pointSet, nb_nodes);
+            visited_nodes[t] = nb_nodes;
+            tree.NNS(p4,tree.node,pointSet,p,dist);
+            distanceToSurface[t] = dist/bBoxAxis;
+
+            nb_nodes = 0;
+            dist = std::numeric_limits<double>::infinity();
+            wn3 = tree.fastWN( p6, tree.node, pointSet, nb_nodes);
+            visited_nodes[t] = nb_nodes;
+            tree.NNS(p4,tree.node,pointSet,p,dist);
+            distanceToSurface[t] = dist/bBoxAxis;
+
+            nb_nodes = 0;
+            dist = std::numeric_limits<double>::infinity();
+            wn4 = tree.fastWN( p7, tree.node, pointSet, nb_nodes);
+            visited_nodes[t] = nb_nodes;
+            tree.NNS(p4,tree.node,pointSet,p,dist);
+            distanceToSurface[t] = dist/bBoxAxis;
+
             wn = (wn1+wn2+wn3+wn4)/4;
             windingNumbers[t] = wn;
         }
@@ -386,12 +410,33 @@ public :
 
         int total_depth = tree.node.compute_depth();
         std::cout << "Depth of the KDTree : " << total_depth << std::endl;
-        for(unsigned int i = 0; i<depth_stats.size(); i++) {
-            if (depth_stats[i] != 0) std::cout << "at depth : " << i
-                                               << " number of wn approx : " << depth_stats[i]
-                                               << " (number of pts : " << (int)(pointSet.size()/(pow(2,i)))+1 << ")"
-                                               << std::endl;
-        }
+
+        /*for(unsigned int i = 0; i<visited_nodes.size(); i++) {
+            std::cout << visited_nodes[i]
+                      << " dist: "
+                      << distanceToSurface[i]
+                      << std::endl;
+        }*/
+
+        fillTxtFile();
+    }
+
+    void fillTxtFile() {
+      std::ofstream myfile ("example2.txt");
+      if (myfile.is_open()) {
+          std::cout << "File Opened" << std::endl;
+          for(unsigned int i = 0; i<visited_nodes.size(); i++) {
+            double dist = distanceToSurface[i];
+            int r=255*255, g=255, b=1;
+            //myfile << "1 ";
+            myfile << std::to_string(visited_nodes[i]) + " ";
+            myfile << std::to_string((int) (dist*10000)) + "\n";
+            //myfile << std::to_string(r*(1-dist) + r*180+g*180+b*180*(dist)) + "\n" ;
+          }
+          myfile.close();
+          std::cout << "File Closed" << std::endl;
+      }
+      else std::cout << "Unable to open file";
     }
 
     void draw() {
@@ -709,7 +754,6 @@ public :
             wn = windingNumbers[adjTets[i].index];
             for( auto j : adjTets[i].tetNeighbors) {
                 if (!hasEdge[i][j] && !hasEdge[j][i]) {
-                    //std::cout << adjTets[i].commonArea[j] << std::endl;
                     double tmp = windingNumbers[j];
                     double weight = gamma * exp(-(tmp-wn)*(tmp-wn)) * adjTets[i].commonArea[j]/(2*sigma*sigma);
                     weight = std::max<double>(epsilonMin,weight);
