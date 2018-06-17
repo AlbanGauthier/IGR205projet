@@ -128,6 +128,7 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
     double cutDepth = 0;
     double lambda = 0.0;
     std::vector<Tet> adjTets;
+    double bBoxAxis = 0;
 
     //used for the statistic analysis
     std::vector<int> visited_nodes;
@@ -352,14 +353,23 @@ public :
         windingNumbers.resize(tetmesh.nTetrahedra());
         visited_nodes.resize(tetmesh.nTetrahedra());
         distanceToSurface.resize(tetmesh.nTetrahedra());
+
         int nb_nodes = 0;
         double dist = 0;
         point3d p;
-        double bBoxAxis = tree.node.bbox.xMax - tree.node.bbox.xMin;
+
+        double xSize = tree.node.bbox.xMax - tree.node.bbox.xMin;
+        double ySize = tree.node.bbox.yMax - tree.node.bbox.yMin;
+        double zSize = tree.node.bbox.zMax - tree.node.bbox.zMin;
+
+        bBoxAxis = sqrt(xSize*xSize + ySize*ySize + zSize*zSize);
+        std::cout << "size of Bbox: " << bBoxAxis << std::endl;
+
         std::vector<point3d> query_pts;
         query_pts.resize(4);
         std::vector<double> wn_vec;
         wn_vec.resize(4);
+
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
             point4ui tet = tetmesh.tetrahedron(t);
             point3d const & p0 = tetmesh.vertex(tet.x());
@@ -380,7 +390,7 @@ public :
                 dist = std::numeric_limits<double>::infinity();
                 wn_vec[i] = tree.fastWN( query_pts[i], tree.node, pointSet, nb_nodes);
                 visited_nodes[t] = nb_nodes;
-                tree.NNS(query_pts[i],tree.node,pointSet,p,dist);
+                //tree.NNS(query_pts[i],tree.node,pointSet,p,dist);
                 distanceToSurface[t] = dist/bBoxAxis;
             }
             wn = 0;
@@ -718,7 +728,9 @@ public :
         glEnd();
     }
 
-    void graph_cut(double sigma = 1 , double gamma = 1){
+    void graph_cut(double sigma = 1 , double gamma = 1000){
+
+        gamma /= bBoxAxis;
 
         typedef GraphCut_BK::Graph<double,double,double> MonTypeDeGraphePourGraphCut;
         MonTypeDeGraphePourGraphCut *g = new MonTypeDeGraphePourGraphCut(/*estimated # of nodes*/ tetmesh.nTetrahedra(), /*estimated # of edges*/ tetmesh.nTetrahedra());

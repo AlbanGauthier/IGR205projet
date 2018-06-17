@@ -247,6 +247,7 @@ struct KDTree {
             return val;
         }
     }
+
 };
 
 #endif // KDTREE_H
