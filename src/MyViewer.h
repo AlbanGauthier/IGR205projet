@@ -347,7 +347,7 @@ public :
         //computes WN of tetra
         std::vector<int> iota2(pointSet.size()) ;
         std::iota (std::begin(iota2), std::end(iota2), 0);
-        double wn = 0, wn1=0, wn2=0, wn3=0, wn4=0;
+        double wn = 0;
 
         windingNumbers.resize(tetmesh.nTetrahedra());
         visited_nodes.resize(tetmesh.nTetrahedra());
@@ -356,48 +356,38 @@ public :
         double dist = 0;
         point3d p;
         double bBoxAxis = tree.node.bbox.xMax - tree.node.bbox.xMin;
+        std::vector<point3d> query_pts;
+        query_pts.resize(4);
+        std::vector<double> wn_vec;
+        wn_vec.resize(4);
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
             point4ui tet = tetmesh.tetrahedron(t);
             point3d const & p0 = tetmesh.vertex(tet.x());
             point3d const & p1 = tetmesh.vertex(tet.y());
             point3d const & p2 = tetmesh.vertex(tet.z());
             point3d const & p3 = tetmesh.vertex(tet.w());
-
             point3d const & p4 = (p0/2) + (p1+p2+p3)/6;
             point3d const & p5 = (p1/2) + (p0+p2+p3)/6;
             point3d const & p6 = (p2/2) + (p0+p1+p3)/6;
             point3d const & p7 = (p3/2) + (p0+p1+p2)/6;
-
+            query_pts[0] = p4;
+            query_pts[1] = p5;
+            query_pts[2] = p6;
+            query_pts[3] = p7;
             //4 evaluations inside de tetrahedron
-            nb_nodes = 0;
-            dist = std::numeric_limits<double>::infinity();
-            wn1 = tree.fastWN( p4, tree.node, pointSet, nb_nodes);
-            visited_nodes[t] = nb_nodes;
-            tree.NNS(p4,tree.node,pointSet,p,dist);
-            distanceToSurface[t] = dist/bBoxAxis;
-
-            nb_nodes = 0;
-            dist = std::numeric_limits<double>::infinity();
-            wn2 = tree.fastWN( p5, tree.node, pointSet, nb_nodes);
-            visited_nodes[t] = nb_nodes;
-            tree.NNS(p4,tree.node,pointSet,p,dist);
-            distanceToSurface[t] = dist/bBoxAxis;
-
-            nb_nodes = 0;
-            dist = std::numeric_limits<double>::infinity();
-            wn3 = tree.fastWN( p6, tree.node, pointSet, nb_nodes);
-            visited_nodes[t] = nb_nodes;
-            tree.NNS(p4,tree.node,pointSet,p,dist);
-            distanceToSurface[t] = dist/bBoxAxis;
-
-            nb_nodes = 0;
-            dist = std::numeric_limits<double>::infinity();
-            wn4 = tree.fastWN( p7, tree.node, pointSet, nb_nodes);
-            visited_nodes[t] = nb_nodes;
-            tree.NNS(p4,tree.node,pointSet,p,dist);
-            distanceToSurface[t] = dist/bBoxAxis;
-
-            wn = (wn1+wn2+wn3+wn4)/4;
+            for( int i = 0 ; i < 4 ; ++i ) {
+                nb_nodes = 0;
+                dist = std::numeric_limits<double>::infinity();
+                wn_vec[i] = tree.fastWN( query_pts[i], tree.node, pointSet, nb_nodes);
+                visited_nodes[t] = nb_nodes;
+                tree.NNS(query_pts[i],tree.node,pointSet,p,dist);
+                distanceToSurface[t] = dist/bBoxAxis;
+            }
+            wn = 0;
+            for( int i = 0 ; i < 4 ; ++i ) {
+                wn += wn_vec[i];
+            }
+            wn /= 4;
             windingNumbers[t] = wn;
         }
         std::cout << "Done: WindingNumbers of Tet" << std::endl;
@@ -411,18 +401,11 @@ public :
         int total_depth = tree.node.compute_depth();
         std::cout << "Depth of the KDTree : " << total_depth << std::endl;
 
-        /*for(unsigned int i = 0; i<visited_nodes.size(); i++) {
-            std::cout << visited_nodes[i]
-                      << " dist: "
-                      << distanceToSurface[i]
-                      << std::endl;
-        }*/
-
-        fillTxtFile();
+        //fillTxtFile();
     }
 
     void fillTxtFile() {
-      std::ofstream myfile ("example2.txt");
+      std::ofstream myfile ("monkey.txt");
       if (myfile.is_open()) {
           std::cout << "File Opened" << std::endl;
           for(unsigned int i = 0; i<visited_nodes.size(); i++) {
