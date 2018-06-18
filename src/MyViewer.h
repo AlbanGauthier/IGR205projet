@@ -361,9 +361,7 @@ public :
         double xSize = tree.node.bbox.xMax - tree.node.bbox.xMin;
         double ySize = tree.node.bbox.yMax - tree.node.bbox.yMin;
         double zSize = tree.node.bbox.zMax - tree.node.bbox.zMin;
-
         bBoxAxis = sqrt(xSize*xSize + ySize*ySize + zSize*zSize);
-        std::cout << "size of Bbox: " << bBoxAxis << std::endl;
 
         std::vector<point3d> query_pts;
         query_pts.resize(4);
@@ -390,7 +388,7 @@ public :
                 dist = std::numeric_limits<double>::infinity();
                 wn_vec[i] = tree.fastWN( query_pts[i], tree.node, pointSet, nb_nodes);
                 visited_nodes[t] = nb_nodes;
-                //tree.NNS(query_pts[i],tree.node,pointSet,p,dist);
+                tree.NNS(query_pts[i],tree.node,pointSet,p,dist);
                 distanceToSurface[t] = dist/bBoxAxis;
             }
             wn = 0;
@@ -411,20 +409,22 @@ public :
         int total_depth = tree.node.compute_depth();
         std::cout << "Depth of the KDTree : " << total_depth << std::endl;
 
-        //fillTxtFile();
+        std::cout << "Diagonal of Bbox: " << bBoxAxis << std::endl;
+
+        fillTxtFile();
     }
 
     void fillTxtFile() {
-      std::ofstream myfile ("monkey.txt");
+      std::ofstream myfile ("test.txt");
       if (myfile.is_open()) {
           std::cout << "File Opened" << std::endl;
           for(unsigned int i = 0; i<visited_nodes.size(); i++) {
             double dist = distanceToSurface[i];
-            int r=255*255, g=255, b=1;
-            //myfile << "1 ";
+            int r_value=256*256, g_value=256, b_value=1;
+            myfile << std::to_string(tetmesh.nTetrahedra())+ " ";
             myfile << std::to_string(visited_nodes[i]) + " ";
-            myfile << std::to_string((int) (dist*10000)) + "\n";
-            //myfile << std::to_string(r*(1-dist) + r*180+g*180+b*180*(dist)) + "\n" ;
+            //myfile << std::to_string((int) (dist*10000)) + "\n";
+            myfile << std::to_string( (int)(255*r_value*(1-dist) + r_value*180+g_value*180+b_value*180*(dist)) ) + "\n" ;
           }
           myfile.close();
           std::cout << "File Closed" << std::endl;
@@ -730,7 +730,7 @@ public :
 
     void graph_cut(double sigma = 1 , double gamma = 1000){
 
-        gamma /= bBoxAxis;
+        gamma /= bBoxAxis*bBoxAxis;
 
         typedef GraphCut_BK::Graph<double,double,double> MonTypeDeGraphePourGraphCut;
         MonTypeDeGraphePourGraphCut *g = new MonTypeDeGraphePourGraphCut(/*estimated # of nodes*/ tetmesh.nTetrahedra(), /*estimated # of edges*/ tetmesh.nTetrahedra());
@@ -941,6 +941,24 @@ public :
 
     void mouseReleaseEvent(QMouseEvent* e  ) {
         QGLViewer::mouseReleaseEvent(e);
+    }
+
+    //https://stackoverflow.com/questions/8520560/get-a-file-name-from-a-path
+    std::string basename( std::string const & pathname ) {
+        // Remove directory if present.
+        // Do this before extension removal incase directory has a period character.
+        std::string cpy = pathname;
+        const size_t last_slash_idx = cpy.find_last_of("\\/");
+        if (std::string::npos != last_slash_idx) {
+            cpy.erase(0, last_slash_idx + 1);
+        }
+        // Remove extension if present.
+        const size_t period_idx = cpy.rfind('.');
+        if (std::string::npos != period_idx)
+        {
+            cpy.erase(period_idx);
+        }
+        return (std::string)(cpy);
     }
 
 public slots:
