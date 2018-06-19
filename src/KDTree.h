@@ -202,20 +202,39 @@ struct KDTree {
             int maxAxis = findMaxAxis(node.bbox);
             double split = 0;
             double search_left_first = true;
+            int n = node.data.size();
             if (maxAxis == 0) {
-                split = (node.bbox.xMax - node.bbox.xMax)/2;
+                if (n%2 == 1){
+                    split = pointSet[node.data[(n-1)/2]].p[0];
+                }
+                else{
+                    KDNode left = *node.leftChild, right = *node.rightChild;
+                    split = (pointSet[left.data[n/2]].p[0] + pointSet[right.data[0]].p[0])/2;
+                }
             } else if (maxAxis == 1) {
-                split = (node.bbox.yMax - node.bbox.yMax)/2;
+                if (n%2 == 1){
+                    split = pointSet[node.data[(n-1)/2]].p[1];
+                }
+                else{
+                    KDNode left = *node.leftChild, right = *node.rightChild;
+                    split = (pointSet[left.data[n/2]].p[1] + pointSet[right.data[0]].p[1])/2;
+                }
             } else {
-                split = (node.bbox.zMax - node.bbox.zMax)/2;
+                if (n%2 == 1){
+                    split = pointSet[node.data[(n-1)/2]].p[2];
+                }
+                else{
+                    KDNode left = *node.leftChild, right = *node.rightChild;
+                    split = (pointSet[left.data[n/2]].p[2] + pointSet[right.data[0]].p[2])/2;
+                }
             }
             if (q[maxAxis] <= split) search_left_first = false;
             if (search_left_first) {
-                if ( (q[maxAxis] - dist) <= split ) NNS(q,*node.rightChild,pointSet,p,dist);
-                if ( (q[maxAxis] + dist) >  split ) NNS(q,*node.leftChild,pointSet,p,dist);
+                if ( (q[maxAxis] - dist) <= split ) NNS(q,*node.leftChild,pointSet,p,dist);
+                if ( (q[maxAxis] + dist) >  split ) NNS(q,*node.rightChild,pointSet,p,dist);
             } else {
-                if ( (q[maxAxis] + dist) >  split ) NNS(q,*node.leftChild,pointSet,p,dist);
-                if ( (q[maxAxis] - dist) <= split ) NNS(q,*node.rightChild,pointSet,p,dist);
+                if ( (q[maxAxis] + dist) >  split ) NNS(q,*node.rightChild,pointSet,p,dist);
+                if ( (q[maxAxis] - dist) <= split ) NNS(q,*node.leftChild,pointSet,p,dist);
             }
         }
     }
