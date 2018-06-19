@@ -230,11 +230,11 @@ struct KDTree {
             }
             if (q[maxAxis] <= split) search_left_first = false;
             if (search_left_first) {
-                if ( (q[maxAxis] - dist) <= split ) NNS(q,*node.leftChild,pointSet,p,dist);
-                if ( (q[maxAxis] + dist) >  split ) NNS(q,*node.rightChild,pointSet,p,dist);
+                if ( (q[maxAxis] - dist) <= split ) NNS(q,*node.rightChild,pointSet,p,dist);
+                if ( (q[maxAxis] + dist) >  split ) NNS(q,*node.leftChild,pointSet,p,dist);
             } else {
-                if ( (q[maxAxis] + dist) >  split ) NNS(q,*node.rightChild,pointSet,p,dist);
-                if ( (q[maxAxis] - dist) <= split ) NNS(q,*node.leftChild,pointSet,p,dist);
+                if ( (q[maxAxis] + dist) >  split ) NNS(q,*node.leftChild,pointSet,p,dist);
+                if ( (q[maxAxis] - dist) <= split ) NNS(q,*node.rightChild,pointSet,p,dist);
             }
         }
     }
