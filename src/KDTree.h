@@ -17,6 +17,7 @@ struct KDNode{
     std::vector<int> data;
     point3d meanP, meanN;
     double area;
+    double split;
     KDNode *leftChild;
     KDNode *rightChild;
     public:
@@ -185,6 +186,14 @@ struct KDTree {
         n.meanP = mp;
         n.meanN = mn;
         n.area = left.area + right.area;
+        if (sortedInd.size()%2 == 1){
+            n.split = pointSet[sortedInd[(sortedInd.size()-1)/2]].p[maxAxis];
+        }
+        else{
+            point3d pt1 = pointSet[sortedInd[(sortedInd.size()-2)/2]].p;
+            point3d pt2 = pointSet[sortedInd[sortedInd.size()/2]].p;
+            n.split = (pt1[maxAxis] + pt2[maxAxis])/2;
+        }
         n.leftChild = leftC;
         n.rightChild = rightC;
         return n;
@@ -200,34 +209,8 @@ struct KDTree {
             }
         } else {
             int maxAxis = findMaxAxis(node.bbox);
-            double split = 0;
+            double split = node.split;
             double search_left_first = true;
-            int n = node.data.size();
-            if (maxAxis == 0) {
-                if (n%2 == 1){
-                    split = pointSet[node.data[(n-1)/2]].p[0];
-                }
-                else{
-                    KDNode left = *node.leftChild, right = *node.rightChild;
-                    split = (pointSet[left.data[n/2]].p[0] + pointSet[right.data[0]].p[0])/2;
-                }
-            } else if (maxAxis == 1) {
-                if (n%2 == 1){
-                    split = pointSet[node.data[(n-1)/2]].p[1];
-                }
-                else{
-                    KDNode left = *node.leftChild, right = *node.rightChild;
-                    split = (pointSet[left.data[n/2]].p[1] + pointSet[right.data[0]].p[1])/2;
-                }
-            } else {
-                if (n%2 == 1){
-                    split = pointSet[node.data[(n-1)/2]].p[2];
-                }
-                else{
-                    KDNode left = *node.leftChild, right = *node.rightChild;
-                    split = (pointSet[left.data[n/2]].p[2] + pointSet[right.data[0]].p[2])/2;
-                }
-            }
             if (q[maxAxis] <= split) search_left_first = false;
             if (search_left_first) {
                 if ( (q[maxAxis] - dist) <= split ) NNS(q,*node.rightChild,pointSet,p,dist);
