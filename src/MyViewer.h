@@ -421,10 +421,12 @@ public :
           for(unsigned int i = 0; i<visited_nodes.size(); i++) {
             double dist = distanceToSurface[i];
             int r_value=256*256, g_value=256, b_value=1;
-            myfile << std::to_string(tetmesh.nTetrahedra())+ " ";
-            myfile << std::to_string(visited_nodes[i]) + " ";
+            //myfile << std::to_string(tetmesh.nTetrahedra())+ " ";
+            //myfile << std::to_string(visited_nodes[i]) + " ";
             //myfile << std::to_string((int) (dist*10000)) + "\n";
-            myfile << std::to_string( (int)(255*r_value*(1-dist) + r_value*180+g_value*180+b_value*180*(dist)) ) + "\n" ;
+            //myfile << std::to_string( (int)(255*r_value*(1-dist) + r_value*180+g_value*180+b_value*180*(dist)) ) + "\n" ;
+            myfile << std::to_string((int) (dist*10000)) + " ";
+            myfile << std::to_string(visited_nodes[i]) + "\n";
           }
           myfile.close();
           std::cout << "File Closed" << std::endl;
