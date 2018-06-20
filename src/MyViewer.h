@@ -130,6 +130,8 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
     std::vector<Tet> adjTets;
     double bBoxAxis = 0;
 
+    std::vector<point3d> pointSetForTetrahedrisation;
+
     //used for the statistic analysis
     std::vector<int> visited_nodes;
     std::vector<double> distanceToSurface;
@@ -331,11 +333,24 @@ public :
         //computes points cloud
         std::vector< point3d > const cloudPositions = fromMeshToPointSet(mesh, pointSet);
         //tetmesh.tetMesh;
-        tetmesh.TetGenHandler::computeTetMeshFromCloud ( cloudPositions );
+        pointSetForTetrahedrisation = cloudPositions;
+        int rez = 10;
+        double xStep = (BB[0]-bb[0])/rez;
+        double yStep = (BB[1]-bb[1])/rez;
+        double zStep = (BB[2]-bb[2])/rez;
+        for (int a = 0 ; a<rez ; a++){
+            for (int b = 0 ; b<rez ; b++){
+                for (int c = 0 ; c<rez ; c++){
+                    point3d pt(bb[0]+a*xStep, bb[1]+b*yStep, bb[2]+c*zStep);
+                    pointSetForTetrahedrisation.push_back(pt);
+                }
+            }
+        }
+        tetmesh.TetGenHandler::computeTetMeshFromCloud ( pointSetForTetrahedrisation );
         std::cout << "PointSet created : " << pointSet.size() << " points" << std::endl;
 
         //tetraedralization
-        tetmesh.computeTetMeshFromCloud ( cloudPositions );
+        tetmesh.computeTetMeshFromCloud ( pointSetForTetrahedrisation );
         std::cout << "Done: Tetraedralization" << std::endl;
 
         // initialize indices vector with : 0,1,2...
