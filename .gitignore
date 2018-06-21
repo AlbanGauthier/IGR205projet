@@ -4,3 +4,6 @@
 *.qmake.stash
 *.qglviewer.xml
 /Makefile
+/res with egg.png
+/result with centaur.png
+/result.png

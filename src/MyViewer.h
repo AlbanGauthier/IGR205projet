@@ -403,7 +403,7 @@ public :
                 dist = std::numeric_limits<double>::infinity();
                 wn_vec[i] = tree.fastWN( query_pts[i], tree.node, pointSet, nb_nodes);
                 visited_nodes[t] = nb_nodes;
-                tree.NNS(query_pts[i],tree.node,pointSet,p,dist);
+                //tree.NNS(query_pts[i],tree.node,pointSet,p,dist);
                 distanceToSurface[t] = dist/bBoxAxis;
             }
             wn = 0;
@@ -426,22 +426,27 @@ public :
 
         std::cout << "Diagonal of Bbox: " << bBoxAxis << std::endl;
 
-        fillTxtFile();
+        // fill a txt file for statistics purposes
+        //fillTxtFile();
     }
 
     void fillTxtFile() {
-      std::ofstream myfile ("test.txt");
+      std::ofstream myfile ("test.txt",std::ios::app);
       if (myfile.is_open()) {
           std::cout << "File Opened" << std::endl;
+          double max_dist = *std::max_element(distanceToSurface.begin(),distanceToSurface.end());
+          double min_dist = *std::min_element(distanceToSurface.begin(),distanceToSurface.end());
           for(unsigned int i = 0; i<visited_nodes.size(); i++) {
             double dist = distanceToSurface[i];
-            int r_value=256*256, g_value=256, b_value=1;
-            //myfile << std::to_string(tetmesh.nTetrahedra())+ " ";
-            //myfile << std::to_string(visited_nodes[i]) + " ";
-            //myfile << std::to_string((int) (dist*10000)) + "\n";
-            //myfile << std::to_string( (int)(255*r_value*(1-dist) + r_value*180+g_value*180+b_value*180*(dist)) ) + "\n" ;
-            myfile << std::to_string((int) (dist*10000)) + " ";
-            myfile << std::to_string(visited_nodes[i]) + "\n";
+            dist = (dist - min_dist)/(max_dist-min_dist);
+            myfile << std::to_string(tetmesh.nTetrahedra())+ " ";
+            myfile << std::to_string(visited_nodes[i]) + " ";
+            // R G B
+            myfile << std::to_string( (int)( 255*(1-dist) + 100*(dist)) ) + " ";
+            myfile << std::to_string( 127 ) + " ";
+            myfile << std::to_string( 127 ) + "\n" ;
+            //myfile << std::to_string((int) (dist*10000)) + " ";
+            //myfile << std::to_string(visited_nodes[i]) + "\n";
           }
           myfile.close();
           std::cout << "File Closed" << std::endl;
@@ -745,7 +750,7 @@ public :
         glEnd();
     }
 
-    void graph_cut(double sigma = 1 , double gamma = 1000){
+    void graph_cut(double sigma = 1 , double gamma = 10000){
 
         gamma /= bBoxAxis*bBoxAxis;
 
