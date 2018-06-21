@@ -122,6 +122,8 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
     Mesh mesh;
     TetGenHandler tetmesh;
     std::vector<Triplet> pointSet;
+    std::vector< point3d > drawablePointCloud;
+    std::vector< point3d > cloudPositions;
     std::vector<double> windingNumbers;
     std::vector<double> wnGraphcut;
     std::vector<Tet> tetList;
@@ -331,7 +333,7 @@ public :
     void mainFunction(){
 
         //computes points cloud
-        std::vector< point3d > const cloudPositions = fromMeshToPointSet(mesh, pointSet);
+        cloudPositions = fromMeshToPointSet(mesh, pointSet);
         //tetmesh.tetMesh;
         pointSetForTetrahedrisation = cloudPositions;
         int rez = 10;
@@ -384,6 +386,7 @@ public :
         wn_vec.resize(4);
 
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
+            if (t%1000==0) std::cout << t << std::endl;
             point4ui tet = tetmesh.tetrahedron(t);
             point3d const & p0 = tetmesh.vertex(tet.x());
             point3d const & p1 = tetmesh.vertex(tet.y());
@@ -402,6 +405,7 @@ public :
                 nb_nodes = 0;
                 dist = std::numeric_limits<double>::infinity();
                 wn_vec[i] = tree.fastWN( query_pts[i], tree.node, pointSet, nb_nodes);
+                drawablePointCloud.push_back(query_pts[i]);
                 visited_nodes[t] = nb_nodes;
                 //tree.NNS(query_pts[i],tree.node,pointSet,p,dist);
                 distanceToSurface[t] = dist/bBoxAxis;
@@ -490,6 +494,12 @@ public :
         case 3:
             drawGraphCutDisplay();
             break;
+        case 4:
+            drawPointSetQuery();
+            break;
+        case 5:
+            drawOriginalPointSet();
+            break;
         }
     }
 
@@ -526,6 +536,24 @@ public :
         }
 
         return false;
+    }
+
+    void drawPointSetQuery() {
+        //glColor3f(1,0.5,0.5);
+        glBegin(GL_POINTS);
+        for (unsigned int i = 0; i< drawablePointCloud.size(); i++) {
+            glVertex3d(drawablePointCloud[i].x(),drawablePointCloud[i].y(),drawablePointCloud[i].z());
+        }
+        glEnd();
+    }
+
+    void drawOriginalPointSet() {
+        //glColor3f(1,0.5,0.5);
+        glBegin(GL_POINTS);
+        for (unsigned int i = 0; i< cloudPositions.size(); i++) {
+            glVertex3d(cloudPositions[i].x(),cloudPositions[i].y(),cloudPositions[i].z());
+        }
+        glEnd();
     }
 
     void drawCutDisplay(){
@@ -750,7 +778,7 @@ public :
         glEnd();
     }
 
-    void graph_cut(double sigma = 1 , double gamma = 10000){
+    void graph_cut(double sigma = 1 , double gamma = 1000){
 
         gamma /= bBoxAxis*bBoxAxis;
 
@@ -907,13 +935,14 @@ public :
             mode = 3;
             update();
         }
-        /*
-        else if ( event->key() == Qt::Key_C ){
-            // show cut display
-            mode = 3;
-            computeCutDepth();
+        else if ( event->key() == Qt::Key_Q ) {
+            mode = 4;
             update();
-        }*/
+        }
+        else if ( event->key() == Qt::Key_P ) {
+            mode = 5;
+            update();
+        }
         else if ( event->key() == Qt::Key_Right){
             cutDepth += 0.001;
             if (cutDepth > 1) cutDepth = 1;
