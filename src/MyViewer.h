@@ -18,6 +18,9 @@
 #include <fstream>
 #include <string>
 
+// analysis
+#include <time.h>
+
 // opengl and basic gl utilities:
 #include <gl/openglincludeQtComp.h>
 #include <QOpenGLFunctions_3_0>
@@ -362,6 +365,8 @@ public :
         tree.node = tree.buildKDTree(iota, pointSet);
         std::cout << "Done: KDTree" << std::endl;
 
+        clock_t tStart = clock();
+
         //computes WN of tetra
         std::vector<int> iota2(pointSet.size()) ;
         std::iota (std::begin(iota2), std::end(iota2), 0);
@@ -408,7 +413,7 @@ public :
                 drawablePointCloud.push_back(query_pts[i]);
                 visited_nodes[t] = nb_nodes;
                 //tree.NNS(query_pts[i],tree.node,pointSet,p,dist);
-                distanceToSurface[t] = dist/bBoxAxis;
+                //distanceToSurface[t] = dist/bBoxAxis;
             }
             wn = 0;
             for( int i = 0 ; i < 4 ; ++i ) {
@@ -417,6 +422,8 @@ public :
             wn /= 4;
             windingNumbers[t] = wn;
         }
+
+        std::cout << "time: " << (double)(clock() - tStart)/CLOCKS_PER_SEC << std::endl;
         std::cout << "Done: WindingNumbers of Tet" << std::endl;
 
         fillTetStruct();
@@ -435,20 +442,21 @@ public :
     }
 
     void fillTxtFile() {
-      std::ofstream myfile ("test.txt",std::ios::app);
+      std::ofstream myfile ("beta.txt",std::ios::app);
       if (myfile.is_open()) {
           std::cout << "File Opened" << std::endl;
-          double max_dist = *std::max_element(distanceToSurface.begin(),distanceToSurface.end());
-          double min_dist = *std::min_element(distanceToSurface.begin(),distanceToSurface.end());
+          //double max_dist = *std::max_element(distanceToSurface.begin(),distanceToSurface.end());
+          //double min_dist = *std::min_element(distanceToSurface.begin(),distanceToSurface.end());
           for(unsigned int i = 0; i<visited_nodes.size(); i++) {
-            double dist = distanceToSurface[i];
-            dist = (dist - min_dist)/(max_dist-min_dist);
-            myfile << std::to_string(tetmesh.nTetrahedra())+ " ";
-            myfile << std::to_string(visited_nodes[i]) + " ";
+
+            //double dist = distanceToSurface[i];
+            //dist = (dist - min_dist)/(max_dist-min_dist);
+            myfile << std::to_string(10) + " ";
+            myfile << std::to_string(visited_nodes[i]) + "\n";
             // R G B
-            myfile << std::to_string( (int)( 255*(1-dist) + 100*(dist)) ) + " ";
-            myfile << std::to_string( 127 ) + " ";
-            myfile << std::to_string( 127 ) + "\n" ;
+            //myfile << std::to_string( (int)( 255*(1-dist) + 100*(dist)) ) + " ";
+            //myfile << std::to_string( 127 ) + " ";
+            //myfile << std::to_string( 127 ) + "\n" ;
             //myfile << std::to_string((int) (dist*10000)) + " ";
             //myfile << std::to_string(visited_nodes[i]) + "\n";
           }
