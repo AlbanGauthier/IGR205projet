@@ -334,7 +334,7 @@ public :
     }
 
     void mainFunction(){
-
+        mesh.subdivide();
         //computes points cloud
         cloudPositions = fromMeshToPointSet(mesh, pointSet);
         //tetmesh.tetMesh;
