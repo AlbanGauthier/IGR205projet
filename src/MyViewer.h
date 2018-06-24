@@ -329,7 +329,7 @@ public :
     }
 
     void mainFunction(){
-
+        mesh.subdivide();
         //computes points cloud
         std::vector< point3d > const cloudPositions = fromMeshToPointSet(mesh, pointSet);
         //tetmesh.tetMesh;
