@@ -37,7 +37,7 @@ struct KDNode{
 struct KDTree {
 
     KDNode node;
-    double beta = 2.3; // accuracy : the article cites 2 for triangles, 2.3 for points
+    double beta = 7; // accuracy : the article cites 2 for triangles, 2.3 for points
 
     BBox computeBoundingBox(std::vector<int> indices, std::vector<Triplet> & pointSet){
         BBox B;

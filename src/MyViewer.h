@@ -18,6 +18,9 @@
 #include <fstream>
 #include <string>
 
+// analysis
+#include <time.h>
+
 // opengl and basic gl utilities:
 #include <gl/openglincludeQtComp.h>
 #include <QOpenGLFunctions_3_0>
@@ -122,6 +125,8 @@ class MyViewer : public QGLViewer , public QOpenGLFunctions_3_0
     Mesh mesh;
     TetGenHandler tetmesh;
     std::vector<Triplet> pointSet;
+    std::vector< point3d > drawablePointCloud;
+    std::vector< point3d > cloudPositions;
     std::vector<double> windingNumbers;
     std::vector<double> wnGraphcut;
     std::vector<Tet> tetList;
@@ -331,7 +336,7 @@ public :
     void mainFunction(){
         //mesh.subdivide();
         //computes points cloud
-        std::vector< point3d > const cloudPositions = fromMeshToPointSet(mesh, pointSet);
+        cloudPositions = fromMeshToPointSet(mesh, pointSet);
         //tetmesh.tetMesh;
         pointSetForTetrahedrisation = cloudPositions;
         int rez = 10;
@@ -360,6 +365,8 @@ public :
         tree.node = tree.buildKDTree(iota, pointSet);
         std::cout << "Done: KDTree" << std::endl;
 
+        clock_t tStart = clock();
+
         //computes WN of tetra
         std::vector<int> iota2(pointSet.size()) ;
         std::iota (std::begin(iota2), std::end(iota2), 0);
@@ -384,6 +391,7 @@ public :
         wn_vec.resize(4);
 
         for( unsigned int t = 0 ; t < tetmesh.nTetrahedra() ; ++t ) {
+            if (t%1000==0) std::cout << t << std::endl;
             point4ui tet = tetmesh.tetrahedron(t);
             point3d const & p0 = tetmesh.vertex(tet.x());
             point3d const & p1 = tetmesh.vertex(tet.y());
@@ -402,9 +410,10 @@ public :
                 nb_nodes = 0;
                 dist = std::numeric_limits<double>::infinity();
                 wn_vec[i] = tree.fastWN( query_pts[i], tree.node, pointSet, nb_nodes);
+                drawablePointCloud.push_back(query_pts[i]);
                 visited_nodes[t] = nb_nodes;
                 //tree.NNS(query_pts[i],tree.node,pointSet,p,dist);
-                distanceToSurface[t] = dist/bBoxAxis;
+                //distanceToSurface[t] = dist/bBoxAxis;
             }
             wn = 0;
             for( int i = 0 ; i < 4 ; ++i ) {
@@ -413,6 +422,8 @@ public :
             wn /= 4;
             windingNumbers[t] = wn;
         }
+
+        std::cout << "time: " << (double)(clock() - tStart)/CLOCKS_PER_SEC << std::endl;
         std::cout << "Done: WindingNumbers of Tet" << std::endl;
 
         fillTetStruct();
@@ -431,20 +442,21 @@ public :
     }
 
     void fillTxtFile() {
-      std::ofstream myfile ("test.txt",std::ios::app);
+      std::ofstream myfile ("beta.txt",std::ios::app);
       if (myfile.is_open()) {
           std::cout << "File Opened" << std::endl;
-          double max_dist = *std::max_element(distanceToSurface.begin(),distanceToSurface.end());
-          double min_dist = *std::min_element(distanceToSurface.begin(),distanceToSurface.end());
+          //double max_dist = *std::max_element(distanceToSurface.begin(),distanceToSurface.end());
+          //double min_dist = *std::min_element(distanceToSurface.begin(),distanceToSurface.end());
           for(unsigned int i = 0; i<visited_nodes.size(); i++) {
-            double dist = distanceToSurface[i];
-            dist = (dist - min_dist)/(max_dist-min_dist);
-            myfile << std::to_string(tetmesh.nTetrahedra())+ " ";
-            myfile << std::to_string(visited_nodes[i]) + " ";
+
+            //double dist = distanceToSurface[i];
+            //dist = (dist - min_dist)/(max_dist-min_dist);
+            myfile << std::to_string(10) + " ";
+            myfile << std::to_string(visited_nodes[i]) + "\n";
             // R G B
-            myfile << std::to_string( (int)( 255*(1-dist) + 100*(dist)) ) + " ";
-            myfile << std::to_string( 127 ) + " ";
-            myfile << std::to_string( 127 ) + "\n" ;
+            //myfile << std::to_string( (int)( 255*(1-dist) + 100*(dist)) ) + " ";
+            //myfile << std::to_string( 127 ) + " ";
+            //myfile << std::to_string( 127 ) + "\n" ;
             //myfile << std::to_string((int) (dist*10000)) + " ";
             //myfile << std::to_string(visited_nodes[i]) + "\n";
           }
@@ -490,6 +502,12 @@ public :
         case 3:
             drawGraphCutDisplay();
             break;
+        case 4:
+            drawPointSetQuery();
+            break;
+        case 5:
+            drawOriginalPointSet();
+            break;
         }
     }
 
@@ -526,6 +544,24 @@ public :
         }
 
         return false;
+    }
+
+    void drawPointSetQuery() {
+        //glColor3f(1,0.5,0.5);
+        glBegin(GL_POINTS);
+        for (unsigned int i = 0; i< drawablePointCloud.size(); i++) {
+            glVertex3d(drawablePointCloud[i].x(),drawablePointCloud[i].y(),drawablePointCloud[i].z());
+        }
+        glEnd();
+    }
+
+    void drawOriginalPointSet() {
+        //glColor3f(1,0.5,0.5);
+        glBegin(GL_POINTS);
+        for (unsigned int i = 0; i< cloudPositions.size(); i++) {
+            glVertex3d(cloudPositions[i].x(),cloudPositions[i].y(),cloudPositions[i].z());
+        }
+        glEnd();
     }
 
     void drawCutDisplay(){
@@ -750,7 +786,7 @@ public :
         glEnd();
     }
 
-    void graph_cut(double sigma = 1 , double gamma = 10000){
+    void graph_cut(double sigma = 1 , double gamma = 1000){
 
         gamma /= bBoxAxis*bBoxAxis;
 
@@ -907,13 +943,14 @@ public :
             mode = 3;
             update();
         }
-        /*
-        else if ( event->key() == Qt::Key_C ){
-            // show cut display
-            mode = 3;
-            computeCutDepth();
+        else if ( event->key() == Qt::Key_Q ) {
+            mode = 4;
             update();
-        }*/
+        }
+        else if ( event->key() == Qt::Key_P ) {
+            mode = 5;
+            update();
+        }
         else if ( event->key() == Qt::Key_Right){
             cutDepth += 0.001;
             if (cutDepth > 1) cutDepth = 1;
